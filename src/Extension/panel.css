@@ -1,0 +1,39 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 12px;
+  background: canvas;
+  color: canvastext;
+}
+
+.panel-header h1 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.panel-subtitle {
+  margin: 0 0 12px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.component-tree {
+  border: 1px solid color-mix(in srgb, canvastext 20%, transparent);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.component-tree h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.placeholder {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
