@@ -1,0 +1,23 @@
+@using BlazorDevTools.Client.Services
+@inject IBlazorDevToolsService DevTools
+
+@code {
+    private const int MaxInitAttempts = 10;
+    private int _attempts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (DevTools.IsInitialized || _attempts >= MaxInitAttempts)
+        {
+            return;
+        }
+
+        _attempts++;
+        await DevTools.InitializeAsync();
+
+        if (!DevTools.IsInitialized)
+        {
+            StateHasChanged();
+        }
+    }
+}

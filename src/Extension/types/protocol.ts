@@ -111,3 +111,22 @@ export type DevToolsMessage =
   | ComponentTreeUpdateMessage
   | ComponentSelectionMessage
   | ComponentPropsUpdateMessage;
+
+/**
+ * Determines whether a value is a valid Blazor Dev Tools domain protocol envelope.
+ *
+ * @param value - The value to inspect, typically from `postMessage` or extension messaging.
+ * @returns `true` when {@link value} matches the {@link DevToolsMessage} wire shape.
+ */
+export const isDevToolsMessage = (value: unknown): value is DevToolsMessage => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const message = value as DevToolsMessage;
+  return (
+    message.protocol === PROTOCOL_NAME &&
+    typeof message.type === "string" &&
+    message.payload !== undefined
+  );
+};

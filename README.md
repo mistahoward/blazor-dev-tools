@@ -35,12 +35,38 @@ dotnet run --project samples/BlazorDevTools.Sample.Server
 
 ### Load the Chrome extension
 
+Build the TypeScript extension scripts first:
+
+```bash
+cd src/Extension
+npm install
+npm run build
+```
+
+Then load the extension in Chrome:
+
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select the `src/Extension` folder
 
+Re-run `npm run build` (or `npm run watch`) after changing extension TypeScript sources.
+
 Open Chrome DevTools on a running sample app. A **Blazor** panel will appear (scaffolding UI only for now).
+
+### Verify the messaging bridge (manual smoke test)
+
+After building, you can confirm the C# → panel pipe with the **Server** sample:
+
+```bash
+dotnet build samples/BlazorDevTools.Sample.Server/BlazorDevTools.Sample.Server.csproj -f net10.0
+dotnet run --project samples/BlazorDevTools.Sample.Server -f net10.0
+```
+
+1. Load the unpacked extension from `src/Extension` (see above).
+2. Open the sample app in Chrome, then open DevTools and select the **Blazor** panel (registers the panel port). If the app loaded before the panel was open, hard-refresh the tab; the background worker also buffers the last envelope per tab and flushes when the panel connects.
+3. Logs from `panel.js` appear in the **panel page's own console**, not the inspected page console: right-click inside the Blazor DevTools panel → **Inspect** → **Console** (DevTools-on-DevTools).
+4. Confirm a mock `componentTreeUpdate` message with a `root` payload (App → MockComponent) is logged.
 
 > NuGet packaging is not available yet. Reference `src/BlazorDevTools.Client` as a project reference until the library is published.
 

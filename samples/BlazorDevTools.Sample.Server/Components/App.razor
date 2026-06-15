@@ -14,6 +14,7 @@
 </head>
 
 <body>
+    <DevToolsInitializer @rendermode="@(new InteractiveServerRenderMode(prerender: false))" />
     <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>

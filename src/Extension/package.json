@@ -2,13 +2,14 @@
   "name": "blazor-dev-tools-extension",
   "private": true,
   "version": "0.1.0",
-  "description": "TypeScript contracts for the Blazor Dev Tools Chrome extension",
+  "description": "Blazor Dev Tools Chrome extension",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.323",
     "typescript": "^5.8.3"
   }
 }
