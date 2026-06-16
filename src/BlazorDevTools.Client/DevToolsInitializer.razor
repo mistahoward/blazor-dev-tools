@@ -7,17 +7,21 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (DevTools.IsInitialized || _attempts >= MaxInitAttempts)
+        if (!DevTools.IsInitialized && _attempts < MaxInitAttempts)
         {
-            return;
+            _attempts++;
+            await DevTools.InitializeAsync(this);
+
+            if (!DevTools.IsInitialized)
+            {
+                StateHasChanged();
+                return;
+            }
         }
 
-        _attempts++;
-        await DevTools.InitializeAsync();
-
-        if (!DevTools.IsInitialized)
+        if (DevTools.IsInitialized)
         {
-            StateHasChanged();
+            DevTools.RequestRefresh();
         }
     }
 }

@@ -4,6 +4,9 @@
  * background service worker.
  */
 import { isDevToolsMessage } from "../types/protocol.js";
+import { applyHighlight } from "./highlightOverlay.js";
+import { setContentPickerActive } from "./pagePicker.js";
+import type { ContentPickerLocator } from "./pagePicker.js";
 
 /**
  * Determines whether a page message event should be forwarded to the extension.
@@ -52,3 +55,74 @@ const handlePageMessage = (event: MessageEvent<unknown>): void => {
 };
 
 window.addEventListener("message", handlePageMessage);
+
+/**
+ * Handles extension requests to ask the Blazor page for a fresh tree snapshot.
+ *
+ * @param message - Message from the background service worker.
+ * @returns `false` because no asynchronous response is sent.
+ */
+const handleExtensionMessage = (message: unknown): boolean => {
+  if (typeof message !== "object" || message === null) {
+    return false;
+  }
+
+  const typedMessage = message as {
+    type?: string;
+    selector?: unknown;
+    name?: unknown;
+    active?: unknown;
+    locators?: unknown;
+  };
+
+  if (typedMessage.type === "bdt:requestRefresh") {
+    window.postMessage(
+      { type: "blazorDevTools:requestRefresh" },
+      window.location.origin,
+    );
+    return false;
+  }
+
+  if (typedMessage.type === "bdt:highlight") {
+    const selector =
+      typeof typedMessage.selector === "string" ? typedMessage.selector : null;
+    const name =
+      typeof typedMessage.name === "string" ? typedMessage.name : undefined;
+    applyHighlight(selector, name);
+    return false;
+  }
+
+  if (typedMessage.type === "bdt:picker") {
+    const active = typedMessage.active === true;
+    const locators = Array.isArray(typedMessage.locators)
+      ? typedMessage.locators.filter(isContentPickerLocator)
+      : [];
+    setContentPickerActive(active, locators);
+    return false;
+  }
+
+  return false;
+};
+
+/**
+ * Determines whether a value is a valid content-script picker locator entry.
+ *
+ * @param value - Candidate locator entry from a control message.
+ * @returns `true` when {@link value} has the expected shape.
+ */
+const isContentPickerLocator = (
+  value: unknown,
+): value is ContentPickerLocator => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const entry = value as ContentPickerLocator;
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.selector === "string" &&
+    typeof entry.depth === "number"
+  );
+};
+
+chrome.runtime.onMessage.addListener(handleExtensionMessage);

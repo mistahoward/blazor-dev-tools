@@ -8,15 +8,43 @@
   </head>
   <body>
     <header class="panel-header">
-      <h1>Blazor Dev Tools</h1>
-      <p class="panel-subtitle">Component inspection panel (scaffolding)</p>
+      <div class="panel-header-row">
+        <div class="panel-header-text">
+          <h1>Blazor Dev Tools</h1>
+          <p class="panel-subtitle">Component inspection panel</p>
+        </div>
+        <button
+          id="picker-toggle"
+          type="button"
+          class="picker-toggle"
+          aria-pressed="false"
+          aria-label="Select an element on the page to inspect"
+          title="Select an element on the page to inspect"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M2 2l4.5 10 1.5-3.5L12 7 2 2zm7.8 4.2L8.6 8.6 7.2 7.2l2.6-1.8z"
+            />
+          </svg>
+        </button>
+      </div>
     </header>
+    <div id="disconnect-banner" class="disconnect-banner" hidden>
+      Disconnected from background service worker. Reload the DevTools panel.
+    </div>
     <main class="panel-main">
       <section class="component-tree" aria-label="Blazor component tree">
         <h2>Component Tree</h2>
-        <p class="placeholder">No components detected yet.</p>
+        <p id="tree-empty" class="placeholder">No components detected yet.</p>
+        <div id="tree-root" role="tree" hidden></div>
       </section>
+      <aside class="details-pane" aria-label="Component details">
+        <h2>Details</h2>
+        <p id="details-empty" class="placeholder">Select a component.</p>
+        <div id="details-root" hidden></div>
+      </aside>
     </main>
-    <script type="module" src="dist/scripts/panel.js"></script>
+    <script type="module" src="dist/scripts/panel.js?v=3"></script>
   </body>
 </html>

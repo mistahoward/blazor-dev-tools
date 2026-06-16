@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Blazor Dev Tools",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Inspect Blazor components, parameters, and dependency injection from Chrome DevTools.",
   "devtools_page": "devtools.html",
+  "permissions": ["storage"],
   "background": {
     "service_worker": "dist/scripts/background.js",
     "type": "module"
@@ -25,8 +26,7 @@
     {
       "matches": ["http://*/*", "https://*/*"],
       "js": ["dist/scripts/content.js"],
-      "run_at": "document_idle",
-      "type": "module"
+      "run_at": "document_start"
     }
   ]
 }

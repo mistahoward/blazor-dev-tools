@@ -2,13 +2,65 @@
  * Background service worker relay between the DevTools panel and content script.
  */
 import { isDevToolsMessage, type DevToolsMessage } from "../types/protocol.js";
-import { isPanelConnectMessage } from "../types/relay.js";
+import {
+  isPanelConnectMessage,
+  isPanelHighlightMessage,
+  isPanelPickerControlMessage,
+} from "../types/relay.js";
 
 /** Long-lived DevTools panel ports keyed by inspected tab id. */
 const panelPortsByTabId = new Map<number, chrome.runtime.Port>();
 
 /** Last domain envelope per tab, buffered until a panel connects. */
 const lastEnvelopeByTabId = new Map<number, DevToolsMessage>();
+
+/**
+ * Builds the session storage key for a tab's last envelope.
+ *
+ * @param tabId - Inspected tab identifier.
+ * @returns Storage key string.
+ */
+const sessionStorageKey = (tabId: number): string => `bdt:lastEnvelope:${tabId}`;
+
+/**
+ * Persists the latest envelope for a tab so it survives service worker restarts.
+ *
+ * @param tabId - Inspected tab identifier.
+ * @param message - Domain envelope to persist.
+ * @returns Nothing.
+ */
+const persistEnvelope = (tabId: number, message: DevToolsMessage): void => {
+  lastEnvelopeByTabId.set(tabId, message);
+
+  // Session storage is best-effort; missing permission or API must never break relay.
+  try {
+    chrome.storage?.session
+      ?.set({ [sessionStorageKey(tabId)]: message })
+      .catch(() => {
+        // Session storage unavailable; in-memory buffer still applies for this SW lifetime.
+      });
+  } catch {
+    // chrome.storage unavailable in this context; in-memory buffer still applies.
+  }
+};
+
+/**
+ * Loads a persisted envelope for a tab from session storage.
+ *
+ * @param tabId - Inspected tab identifier.
+ * @returns The persisted envelope, if any.
+ */
+const loadPersistedEnvelope = async (
+  tabId: number,
+): Promise<DevToolsMessage | undefined> => {
+  try {
+    const result = await chrome.storage?.session?.get(sessionStorageKey(tabId));
+    const message = result?.[sessionStorageKey(tabId)];
+    return isDevToolsMessage(message) ? message : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * Relays a domain message to the DevTools panel port for the given tab.
@@ -19,9 +71,10 @@ const lastEnvelopeByTabId = new Map<number, DevToolsMessage>();
  * @returns Nothing.
  */
 const relayToPanel = (tabId: number, message: DevToolsMessage): void => {
+  persistEnvelope(tabId, message);
+
   const port = panelPortsByTabId.get(tabId);
   if (!port) {
-    lastEnvelopeByTabId.set(tabId, message);
     console.debug(
       "[Blazor Dev Tools] Buffered message for tab",
       tabId,
@@ -43,24 +96,58 @@ const relayToPanel = (tabId: number, message: DevToolsMessage): void => {
 };
 
 /**
+ * Relays a picker event from the content script to the DevTools panel port.
+ *
+ * @param tabId - Inspected tab identifier from the content script sender.
+ * @param message - Picker hover, click, or escape relay payload.
+ * @returns Nothing.
+ */
+const relayPickerEventToPanel = (
+  tabId: number,
+  message: unknown,
+): void => {
+  const port = panelPortsByTabId.get(tabId);
+  if (!port) {
+    return;
+  }
+
+  try {
+    port.postMessage(message);
+  } catch (error) {
+    console.debug(
+      "[Blazor Dev Tools] Failed to post picker event to panel for tab",
+      tabId,
+      error,
+    );
+    panelPortsByTabId.delete(tabId);
+  }
+};
+
+/**
  * Sends a previously buffered envelope to a newly connected panel port.
  *
  * @param tabId - Inspected tab identifier that just registered a panel port.
  * @param port - DevTools panel port to receive the buffered message.
  * @returns Nothing.
  */
-const flushBufferedEnvelope = (
+const flushBufferedEnvelope = async (
   tabId: number,
   port: chrome.runtime.Port,
-): void => {
-  const buffered = lastEnvelopeByTabId.get(tabId);
+): Promise<void> => {
+  let buffered = lastEnvelopeByTabId.get(tabId);
+  if (!buffered) {
+    buffered = await loadPersistedEnvelope(tabId);
+    if (buffered) {
+      lastEnvelopeByTabId.set(tabId, buffered);
+    }
+  }
+
   if (!buffered) {
     return;
   }
 
   try {
     port.postMessage(buffered);
-    lastEnvelopeByTabId.delete(tabId);
     console.debug("[Blazor Dev Tools] Flushed buffered message for tab", tabId);
   } catch (error) {
     console.debug(
@@ -94,11 +181,38 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
     if (isPanelConnectMessage(message)) {
       tabId = message.tabId;
       panelPortsByTabId.set(tabId, port);
-      flushBufferedEnvelope(tabId, port);
+      void flushBufferedEnvelope(tabId, port);
+      chrome.tabs.sendMessage(tabId, { type: "bdt:requestRefresh" }).catch(() => {
+        // Content script may not be ready yet; buffered envelope may still apply.
+      });
       return;
     }
 
-    // TODO: Relay panel messages to the content script for tabId.
+    if (isPanelHighlightMessage(message)) {
+      chrome.tabs
+        .sendMessage(message.tabId, {
+          type: "bdt:highlight",
+          selector: message.selector,
+          name: message.name,
+        })
+        .catch(() => {
+          // Content script may not be ready yet.
+        });
+      return;
+    }
+
+    if (isPanelPickerControlMessage(message)) {
+      chrome.tabs
+        .sendMessage(message.tabId, {
+          type: "bdt:picker",
+          active: message.active,
+          locators: message.locators,
+        })
+        .catch(() => {
+          // Content script may not be ready yet.
+        });
+      return;
+    }
   };
 
   /**
@@ -109,6 +223,15 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
   const onPanelDisconnect = (): void => {
     if (typeof tabId === "number") {
       panelPortsByTabId.delete(tabId);
+      chrome.tabs
+        .sendMessage(tabId, {
+          type: "bdt:picker",
+          active: false,
+          locators: [],
+        })
+        .catch(() => {
+          // Content script may not be ready yet.
+        });
     }
   };
 
@@ -128,11 +251,48 @@ const handleContentScriptMessage = (
   sender: chrome.runtime.MessageSender,
 ): boolean => {
   const tabId = sender.tab?.id;
-  if (typeof tabId !== "number" || !isDevToolsMessage(message)) {
+  if (typeof tabId !== "number") {
     return false;
   }
 
-  relayToPanel(tabId, message);
+  if (isDevToolsMessage(message)) {
+    relayToPanel(tabId, message);
+    return false;
+  }
+
+  if (typeof message !== "object" || message === null) {
+    return false;
+  }
+
+  const typedMessage = message as { type?: string; componentId?: unknown };
+
+  if (typedMessage.type === "bdt:pickerHover") {
+    relayPickerEventToPanel(tabId, {
+      type: "picker:hover",
+      componentId:
+        typeof typedMessage.componentId === "string"
+          ? typedMessage.componentId
+          : null,
+    });
+    return false;
+  }
+
+  if (typedMessage.type === "bdt:pickerClick") {
+    relayPickerEventToPanel(tabId, {
+      type: "picker:click",
+      componentId:
+        typeof typedMessage.componentId === "string"
+          ? typedMessage.componentId
+          : null,
+    });
+    return false;
+  }
+
+  if (typedMessage.type === "bdt:pickerEscape") {
+    relayPickerEventToPanel(tabId, { type: "picker:escape" });
+    return false;
+  }
+
   return false;
 };
 

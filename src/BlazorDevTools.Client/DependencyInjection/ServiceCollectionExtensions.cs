@@ -1,6 +1,8 @@
+using BlazorDevTools.Client.Inspection;
 using BlazorDevTools.Client.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+
 namespace BlazorDevTools.Client.DependencyInjection;
 
 /// <summary>
@@ -19,6 +21,9 @@ public static class ServiceCollectionExtensions
     /// </remarks>
     public static IServiceCollection AddBlazorDevTools(this IServiceCollection services)
     {
+        services.TryAddSingleton<BlazorInternalsAccessor>();
+        services.TryAddSingleton<ParameterValueSerializer>();
+        services.TryAddScoped<IComponentTreeInspector, ReflectionComponentTreeInspector>();
         services.TryAddScoped<IBlazorDevToolsService, BlazorDevToolsService>();
         return services;
     }

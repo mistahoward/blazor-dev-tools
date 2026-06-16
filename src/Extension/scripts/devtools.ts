@@ -17,10 +17,12 @@ const onPanelCreated = (): void => {
  * @returns Nothing.
  */
 const registerDevToolsPanel = (): void => {
+  // The version query forces DevTools to fetch a fresh panel page instead of
+  // serving a cached panel.html (which would pull in stale panel modules).
   chrome.devtools.panels.create(
     "Blazor",
     "icons/icon48.png",
-    "panel.html",
+    "panel.html?v=4",
     onPanelCreated,
   );
 };

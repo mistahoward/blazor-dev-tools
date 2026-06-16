@@ -1,13 +1,39 @@
 :root {
   color-scheme: light dark;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --row-hover: color-mix(in srgb, AccentColor 12%, canvas);
+  --row-selected: color-mix(in srgb, AccentColor 22%, canvas);
+  --row-selected-hover: color-mix(in srgb, AccentColor 28%, canvas);
+  --pane-border: color-mix(in srgb, canvastext 20%, transparent);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
 }
 
 body {
-  margin: 0;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
   background: canvas;
   color: canvastext;
+}
+
+.panel-header {
+  flex-shrink: 0;
+  padding: 8px 12px 0;
+}
+
+.panel-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-header-text {
+  min-width: 0;
 }
 
 .panel-header h1 {
@@ -15,25 +41,224 @@ body {
   font-size: 16px;
 }
 
+.picker-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 2px;
+  padding: 0;
+  border: 1px solid var(--pane-border);
+  border-radius: 4px;
+  background: canvas;
+  color: canvastext;
+  cursor: pointer;
+}
+
+.picker-toggle:hover {
+  background: var(--row-hover);
+}
+
+.picker-toggle--active,
+.picker-toggle[aria-pressed="true"] {
+  background: var(--row-selected);
+  border-color: color-mix(in srgb, AccentColor 40%, var(--pane-border));
+  color: AccentColor;
+}
+
 .panel-subtitle {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 12px;
   opacity: 0.75;
 }
 
-.component-tree {
-  border: 1px solid color-mix(in srgb, canvastext 20%, transparent);
-  border-radius: 6px;
-  padding: 12px;
+.disconnect-banner {
+  flex-shrink: 0;
+  margin: 8px 12px 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  background: color-mix(in srgb, #c00 15%, canvas);
+  color: canvastext;
 }
 
-.component-tree h2 {
+.panel-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--pane-border);
+}
+
+.component-tree,
+.details-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.component-tree {
+  border-right: 1px solid var(--pane-border);
+}
+
+.component-tree h2,
+.details-pane h2 {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
 }
 
 .placeholder {
   margin: 0;
   font-size: 12px;
-  opacity: 0.8;
+  opacity: 0.65;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 3px;
+  cursor: default;
+  user-select: none;
+}
+
+.tree-row--hover:not(.tree-row--truncated),
+.tree-row:hover:not(.tree-row--truncated) {
+  background: var(--row-hover);
+}
+
+.tree-row.selected {
+  background: var(--row-selected);
+}
+
+.tree-row.selected.tree-row--hover:not(.tree-row--truncated) {
+  background: var(--row-selected-hover);
+}
+
+.tree-row--truncated {
+  opacity: 0.55;
+  font-style: italic;
+  cursor: default;
+}
+
+.tree-toggle {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: canvastext;
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.tree-toggle:hover {
+  opacity: 1;
+}
+
+.tree-toggle--leaf {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tree-row--truncated .tree-label {
+  cursor: default;
+}
+
+.details-section {
+  margin-bottom: 16px;
+}
+
+.details-section h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.details-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.details-table th,
+.details-table td {
+  padding: 4px 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--pane-border);
+}
+
+.details-table th {
+  font-weight: 600;
+  font-size: 11px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.details-table td {
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  word-break: break-word;
+}
+
+.details-table .col-name {
+  width: 28%;
+}
+
+.details-table .col-type {
+  width: 32%;
+}
+
+.details-empty-section {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.details-header {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.details-locator {
+  margin: 0 0 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  opacity: 0.85;
+  word-break: break-all;
+}
+
+.details-locator-missing {
+  font-style: italic;
+  opacity: 0.65;
 }

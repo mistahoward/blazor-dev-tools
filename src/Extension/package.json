@@ -4,12 +4,14 @@
   "version": "0.1.0",
   "description": "Blazor Dev Tools Chrome extension",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run build:content",
+    "build:content": "esbuild scripts/content.ts --bundle --format=iife --outfile=dist/scripts/content.js --platform=browser --target=es2020",
     "watch": "tsc -w",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.323",
+    "esbuild": "^0.25.0",
     "typescript": "^5.8.3"
   }
 }

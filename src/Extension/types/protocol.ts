@@ -29,6 +29,21 @@ export interface ComponentNode {
   name: string;
   /** Child components rendered by this component. */
   children: ComponentNode[];
+  /**
+   * Component parameters and cascading values. Optional on the wire when empty;
+   * selection-driven detail may arrive via {@link ComponentPropsUpdatePayload}.
+   */
+  parameters?: ComponentParameter[];
+  /**
+   * Services injected into this component. Optional on the wire when empty;
+   * selection-driven detail may arrive via {@link ComponentPropsUpdatePayload}.
+   */
+  injections?: ComponentInjection[];
+  /**
+   * Best-effort CSS selector for the component's first rendered element.
+   * Omitted on the wire when unavailable.
+   */
+  locator?: string | null;
 }
 
 /** A single component parameter (route/query/cascading/etc.). */
@@ -128,5 +143,31 @@ export const isDevToolsMessage = (value: unknown): value is DevToolsMessage => {
     message.protocol === PROTOCOL_NAME &&
     typeof message.type === "string" &&
     message.payload !== undefined
+  );
+};
+
+/**
+ * Determines whether a value is a component tree update envelope with a valid root.
+ *
+ * @param value - The value received on the DevTools panel port.
+ * @returns `true` when {@link value} is a {@link ComponentTreeUpdateMessage} with `payload.root`.
+ */
+export const isComponentTreeUpdateMessage = (
+  value: unknown,
+): value is ComponentTreeUpdateMessage => {
+  if (!isDevToolsMessage(value)) {
+    return false;
+  }
+
+  if (value.type !== MessageType.ComponentTreeUpdate) {
+    return false;
+  }
+
+  const payload = value.payload as ComponentTreeUpdatePayload;
+  return (
+    typeof payload === "object" &&
+    payload !== null &&
+    typeof payload.root === "object" &&
+    payload.root !== null
   );
 };

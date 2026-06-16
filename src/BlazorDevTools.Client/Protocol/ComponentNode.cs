@@ -18,4 +18,25 @@ public sealed record ComponentNode
     /// <summary>Child components rendered by this component.</summary>
     [JsonPropertyName("children")]
     public IReadOnlyList<ComponentNode> Children { get; init; } = [];
+
+    /// <summary>
+    /// Component parameters and cascading values. Omitted on the wire when empty;
+    /// future selection-driven updates may use <see cref="ComponentPropsUpdatePayload"/> instead.
+    /// </summary>
+    [JsonPropertyName("parameters")]
+    public IReadOnlyList<ComponentParameter> Parameters { get; init; } = [];
+
+    /// <summary>
+    /// Services injected into this component. Omitted on the wire when empty;
+    /// future selection-driven updates may use <see cref="ComponentPropsUpdatePayload"/> instead.
+    /// </summary>
+    [JsonPropertyName("injections")]
+    public IReadOnlyList<ComponentInjection> Injections { get; init; } = [];
+
+    /// <summary>
+    /// Best-effort CSS selector for the component's first rendered element.
+    /// Omitted on the wire when unavailable.
+    /// </summary>
+    [JsonPropertyName("locator")]
+    public string? Locator { get; init; }
 }

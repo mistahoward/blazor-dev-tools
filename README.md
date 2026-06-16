@@ -66,7 +66,7 @@ dotnet run --project samples/BlazorDevTools.Sample.Server -f net10.0
 1. Load the unpacked extension from `src/Extension` (see above).
 2. Open the sample app in Chrome, then open DevTools and select the **Blazor** panel (registers the panel port). If the app loaded before the panel was open, hard-refresh the tab; the background worker also buffers the last envelope per tab and flushes when the panel connects.
 3. Logs from `panel.js` appear in the **panel page's own console**, not the inspected page console: right-click inside the Blazor DevTools panel → **Inspect** → **Console** (DevTools-on-DevTools).
-4. Confirm a mock `componentTreeUpdate` message with a `root` payload (App → MockComponent) is logged.
+4. Confirm a real `componentTreeUpdate` message is logged. On the **Server** sample, static-SSR layout components (`Routes`, `MainLayout`) are not in the interactive renderer — expect `DevToolsInitializer` on every page and `Counter` when navigated to `/counter`. Use **Home ↔ Counter** navigation to verify a second envelope arrives (hash/debounce skips identical trees).
 
 > NuGet packaging is not available yet. Reference `src/BlazorDevTools.Client` as a project reference until the library is published.
 
