@@ -7,6 +7,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!DevTools.IsEnabled)
+        {
+            return;
+        }
+
         if (!DevTools.IsInitialized && _attempts < MaxInitAttempts)
         {
             _attempts++;

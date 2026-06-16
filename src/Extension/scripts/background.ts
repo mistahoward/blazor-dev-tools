@@ -23,6 +23,22 @@ const lastEnvelopeByTabId = new Map<number, DevToolsMessage>();
 const sessionStorageKey = (tabId: number): string => `bdt:lastEnvelope:${tabId}`;
 
 /**
+ * Clears the buffered envelope for a tab (in-memory and session storage).
+ *
+ * @param tabId - Inspected tab identifier.
+ * @returns Nothing.
+ */
+const clearBufferedEnvelope = async (tabId: number): Promise<void> => {
+  lastEnvelopeByTabId.delete(tabId);
+
+  try {
+    await chrome.storage?.session?.remove(sessionStorageKey(tabId));
+  } catch {
+    // Session storage unavailable; in-memory buffer still cleared.
+  }
+};
+
+/**
  * Persists the latest envelope for a tab so it survives service worker restarts.
  *
  * @param tabId - Inspected tab identifier.
@@ -181,10 +197,10 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
     if (isPanelConnectMessage(message)) {
       tabId = message.tabId;
       panelPortsByTabId.set(tabId, port);
-      void flushBufferedEnvelope(tabId, port);
       chrome.tabs.sendMessage(tabId, { type: "bdt:requestRefresh" }).catch(() => {
         // Content script may not be ready yet; buffered envelope may still apply.
       });
+      void flushBufferedEnvelope(tabId, port);
       return;
     }
 
@@ -298,3 +314,13 @@ const handleContentScriptMessage = (
 
 chrome.runtime.onConnect.addListener(handlePanelConnect);
 chrome.runtime.onMessage.addListener(handleContentScriptMessage);
+
+/**
+ * Clears buffered envelopes when a tab navigates so stale Development snapshots
+ * are not replayed after a Production reload on the same tab.
+ */
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") {
+    void clearBufferedEnvelope(tabId);
+  }
+});

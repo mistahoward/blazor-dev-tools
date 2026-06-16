@@ -3,9 +3,11 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BlazorDevTools.Client.Inspection;
+using BlazorDevTools.Client.Options;
 using BlazorDevTools.Client.Protocol;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 namespace BlazorDevTools.Client.Services;
@@ -18,7 +20,8 @@ internal sealed class BlazorDevToolsService(
     IJSRuntime jsRuntime,
     NavigationManager navigationManager,
     IComponentTreeInspector treeInspector,
-    BlazorInternalsAccessor internalsAccessor) : IBlazorDevToolsService, IAsyncDisposable
+    BlazorInternalsAccessor internalsAccessor,
+    IOptions<BlazorDevToolsOptions> options) : IBlazorDevToolsService, IAsyncDisposable
 {
     private const int DebounceMilliseconds = 250;
 
@@ -49,7 +52,7 @@ internal sealed class BlazorDevToolsService(
     private string? _lastPayloadHash;
 
     /// <inheritdoc />
-    public bool IsEnabled => true;
+    public bool IsEnabled => options.Value.Enabled == true;
 
     /// <inheritdoc />
     public bool IsInitialized { get; private set; }

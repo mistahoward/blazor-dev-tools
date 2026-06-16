@@ -70,6 +70,57 @@ dotnet run --project samples/BlazorDevTools.Sample.Server -f net10.0
 
 > NuGet packaging is not available yet. Reference `src/BlazorDevTools.Client` as a project reference until the library is published.
 
+## Security
+
+Blazor Dev Tools exposes sensitive application internals to the browser when enabled. The in-page bridge dispatches protocol envelopes via same-origin `window.postMessage`. Any same-origin script — not just the Chrome extension — can observe component names, serialized parameter values, DI injection metadata, and DOM locators.
+
+### Default behavior
+
+Dev Tools is **disabled unless** `IHostEnvironment.IsDevelopment()` is `true`. When the host environment is unavailable, Dev Tools stays off. This is enforced at runtime via `IBlazorDevToolsService.IsEnabled` — you do not need the Chrome extension installed for the gate to apply; the Blazor app simply does not dispatch envelopes when disabled.
+
+### Integration patterns
+
+**Pattern A (recommended):** Register and render unconditionally; the runtime gate disables Dev Tools in Production.
+
+```csharp
+builder.Services.AddBlazorDevTools();
+```
+
+```razor
+<DevToolsInitializer />
+```
+
+**Pattern B (optional optimization):** Skip registration outside Development **and** conditionally render `<DevToolsInitializer />`. Both steps are required — registration alone without the component does nothing; rendering alone without registration causes a DI failure.
+
+```csharp
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddBlazorDevTools();
+}
+```
+
+### Explicit override
+
+`AddBlazorDevTools(o => o.Enabled = true)` is available for local debugging scenarios. **Never use this in production.**
+
+### Edge environments
+
+- **Staging** is off by default (not Development).
+- **Misconfigured production** with `ASPNETCORE_ENVIRONMENT=Development` will enable Dev Tools — ensure production deployments use the Production environment.
+- **Blazor WebAssembly:** the client bundle ships whatever you register. The WASM host environment may differ from the server host environment; verify production-like behavior with `dotnet publish -c Release` and serve the publish output.
+
+### Verifying the production gate
+
+When testing that Production suppresses Dev Tools, use a page-level listener in the inspected tab's DevTools Console — an empty Blazor panel alone is not sufficient proof (the extension may buffer stale envelopes):
+
+```javascript
+window.addEventListener("message", (e) => {
+  if (e.data?.protocol === "blazorDevTools") console.log("LEAK", e.data);
+});
+```
+
+Expect zero `LEAK` logs after page load, navigation, and panel refresh. Use a fresh incognito window or clear extension session storage before negative tests.
+
 ## Architecture Overview
 
 The Chrome extension knows nothing about Blazor internals. It consumes a standardized JSON messaging protocol. The Blazor library handles reflection, runtime inspection, and dependency-injection introspection.

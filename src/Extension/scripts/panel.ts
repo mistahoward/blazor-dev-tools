@@ -129,6 +129,24 @@ const ensurePanelDom = (): boolean => {
 };
 
 /**
+ * Clears in-panel tree state so a reconnect or reload does not show a prior snapshot.
+ *
+ * @returns Nothing.
+ */
+const resetTreeState = (): void => {
+  currentRoot = null;
+  selectedId = null;
+  hoveredId = null;
+  pickerPreviewId = null;
+  lastHighlightedId = null;
+  nodeIndex.clear();
+  depthByNodeId.clear();
+  collapsedIds.clear();
+  sendPanelHighlight(null);
+  render();
+};
+
+/**
  * Sends the panel connect handshake to register this tab with the background worker.
  *
  * @returns Nothing.
@@ -590,7 +608,7 @@ const connectPort = (): void => {
   }
 
   isConnected = true;
-  render();
+  resetTreeState();
 
   port.onMessage.addListener(handlePanelMessage);
   port.onDisconnect.addListener(scheduleReconnect);
