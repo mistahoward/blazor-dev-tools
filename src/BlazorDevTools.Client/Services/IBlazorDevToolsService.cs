@@ -1,6 +1,4 @@
-using BlazorDevTools.Client.Protocol;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Routing;
 
 namespace BlazorDevTools.Client.Services;
 
@@ -10,7 +8,7 @@ namespace BlazorDevTools.Client.Services;
 public interface IBlazorDevToolsService
 {
     /// <summary>
-    /// Gets whether Blazor Dev Tools integration is enabled for the current scope.
+    /// Gets whether Dev Tools is enabled for the current host environment and configuration.
     /// </summary>
     bool IsEnabled { get; }
 

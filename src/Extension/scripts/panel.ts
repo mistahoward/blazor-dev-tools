@@ -94,25 +94,19 @@ const pickerToggleEl = document.getElementById(
 const ensurePanelDom = (): boolean => {
   const missing: string[] = [];
 
-  if (!treeRootEl) {
+  if (!treeRootEl)
     missing.push("tree-root");
-  }
-  if (!treeEmptyEl) {
+  if (!treeEmptyEl)
     missing.push("tree-empty");
-  }
-  if (!detailsRootEl) {
+  if (!detailsRootEl)
     missing.push("details-root");
-  }
-  if (!detailsEmptyEl) {
+  if (!detailsEmptyEl)
     missing.push("details-empty");
-  }
-  if (!disconnectBannerEl) {
+  if (!disconnectBannerEl)
     missing.push("disconnect-banner");
-  }
 
-  if (missing.length === 0) {
+  if (missing.length === 0)
     return true;
-  }
 
   const header = document.querySelector(".panel-header");
   if (header && !header.querySelector("[data-bdt-dom-error]")) {
@@ -207,9 +201,8 @@ const restoreSelectionHighlight = (): void => {
   if (selectedId !== null) {
     const node = nodeIndex.get(selectedId);
     if (node?.locator) {
-      if (lastHighlightedId === selectedId) {
+      if (lastHighlightedId === selectedId)
         return;
-      }
 
       lastHighlightedId = selectedId;
       sendPanelHighlight(node.locator, node.name);
@@ -238,17 +231,15 @@ const rebuildNodeIndex = (root: ComponentNode): void => {
       nodeIndex.set(node.id, node);
       depthByNodeId.set(node.id, depth);
     }
-    for (const child of node.children ?? []) {
+    for (const child of node.children ?? [])
       walk(child, depth + 1);
-    }
   };
 
   const topLevelNodes =
     root.id === SYNTHETIC_ROOT_ID ? (root.children ?? []) : [root];
 
-  for (const node of topLevelNodes) {
+  for (const node of topLevelNodes)
     walk(node, 0);
-  }
 };
 
 /**
@@ -266,19 +257,15 @@ const pruneStaleState = (): void => {
     selectedId = null;
   }
 
-  if (hoveredId !== null && !nodeIndex.has(hoveredId)) {
+  if (hoveredId !== null && !nodeIndex.has(hoveredId))
     hoveredId = null;
-  }
 
-  if (pickerPreviewId !== null && !nodeIndex.has(pickerPreviewId)) {
+  if (pickerPreviewId !== null && !nodeIndex.has(pickerPreviewId))
     pickerPreviewId = null;
-  }
 
-  for (const id of collapsedIds) {
-    if (!nodeIndex.has(id)) {
+  for (const id of collapsedIds)
+    if (!nodeIndex.has(id))
       collapsedIds.delete(id);
-    }
-  }
 };
 
 /**
@@ -290,9 +277,8 @@ const buildPickerLocators = (): PickerLocatorEntry[] => {
   const entries: PickerLocatorEntry[] = [];
 
   for (const [id, node] of nodeIndex) {
-    if (isReservedNodeId(id) || !node.locator) {
+    if (isReservedNodeId(id) || !node.locator)
       continue;
-    }
 
     entries.push({
       id,
@@ -454,20 +440,17 @@ const render = (): void => {
         return;
       }
 
-      if (selectedId === id && lastHighlightedId === id) {
+      if (selectedId === id && lastHighlightedId === id)
         return;
-      }
 
-      if (pickerActive) {
+      if (pickerActive)
         setPickerActive(false);
-      }
 
       selectComponent(id);
     },
     onHover: (id) => {
-      if (pickerActive) {
+      if (pickerActive)
         return;
-      }
 
       hoveredId = id;
 
@@ -476,9 +459,8 @@ const render = (): void => {
         return;
       }
 
-      if (isReservedNodeId(id)) {
+      if (isReservedNodeId(id))
         return;
-      }
 
       const node = nodeIndex.get(id);
       if (!node?.locator) {

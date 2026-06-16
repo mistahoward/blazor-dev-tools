@@ -23,9 +23,8 @@ export const renderDetails = (
 ): void => {
   container.replaceChildren();
 
-  if (!node) {
+  if (!node)
     return;
-  }
 
   const header = document.createElement("p");
   header.className = "details-header";
@@ -209,21 +208,17 @@ const prettifyClrType = (typeName: string): string => {
  * @returns A safe, truncated string representation.
  */
 const formatValue = (value: unknown): string => {
-  if (value === undefined) {
+  if (value === undefined)
     return "undefined";
-  }
 
-  if (value === null) {
+  if (value === null)
     return "null";
-  }
 
-  if (typeof value === "string") {
+  if (typeof value === "string")
     return truncate(`"${value}"`);
-  }
 
-  if (typeof value === "boolean" || typeof value === "number") {
+  if (typeof value === "boolean" || typeof value === "number")
     return String(value);
-  }
 
   try {
     const serialized = JSON.stringify(value);

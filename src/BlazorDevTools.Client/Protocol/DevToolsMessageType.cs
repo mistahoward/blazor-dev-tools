@@ -8,10 +8,4 @@ public static class DevToolsMessageType
 {
     /// <summary>Full component tree snapshot.</summary>
     public const string ComponentTreeUpdate = "componentTreeUpdate";
-
-    /// <summary>User selected a component in the DevTools panel.</summary>
-    public const string ComponentSelection = "componentSelection";
-
-    /// <summary>Parameters and injections for a specific component.</summary>
-    public const string ComponentPropsUpdate = "componentPropsUpdate";
 }

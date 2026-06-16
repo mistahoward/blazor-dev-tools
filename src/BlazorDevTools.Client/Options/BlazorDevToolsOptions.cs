@@ -8,7 +8,8 @@ public sealed class BlazorDevToolsOptions
     /// <summary>
     /// Gets or sets whether Blazor Dev Tools is enabled for the current application.
     /// When <see langword="null"/>, enablement is resolved from
-    /// <see cref="Microsoft.Extensions.Hosting.IHostEnvironment.IsDevelopment()"/>.
+    /// <see cref="Microsoft.Extensions.Hosting.IHostEnvironment.EnvironmentName"/> matching
+    /// <see cref="Microsoft.Extensions.Hosting.Environments.Development"/>.
     /// When <see cref="Microsoft.Extensions.Hosting.IHostEnvironment"/> is unavailable, the default is
     /// <see langword="false"/>.
     /// </summary>

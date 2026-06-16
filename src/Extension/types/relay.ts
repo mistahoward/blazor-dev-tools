@@ -33,6 +33,27 @@ export interface PickerLocatorEntry {
   depth: number;
 }
 
+/**
+ * Determines whether a value is a picker locator entry.
+ *
+ * @param value - Candidate locator entry from a control message.
+ * @returns `true` when {@link value} is a {@link PickerLocatorEntry}.
+ */
+export const isPickerLocatorEntry = (
+  value: unknown,
+): value is PickerLocatorEntry => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const entry = value as PickerLocatorEntry;
+  return (
+    typeof entry.id === "string" &&
+    typeof entry.selector === "string" &&
+    typeof entry.depth === "number"
+  );
+};
+
 /** Enables or disables the content-script page element picker. */
 export interface PanelPickerControlMessage {
   /** Discriminator for the panel picker control message. */
@@ -128,14 +149,7 @@ export const isPanelPickerControlMessage = (
     return false;
   }
 
-  return message.locators.every(
-    (entry) =>
-      typeof entry === "object" &&
-      entry !== null &&
-      typeof entry.id === "string" &&
-      typeof entry.selector === "string" &&
-      typeof entry.depth === "number",
-  );
+  return message.locators.every(isPickerLocatorEntry);
 };
 
 /**

@@ -1,16 +1,12 @@
 /**
  * Page element picker running in the content script (shared DOM with the inspected page).
  */
-
-/** Locator entry used to reverse-map DOM elements to component ids. */
-export interface ContentPickerLocator {
-  /** Component id from the tree payload. */
-  id: string;
-  /** CSS selector for the component's first rendered element. */
-  selector: string;
-  /** Tree depth used to prefer the most specific match. */
-  depth: number;
-}
+import type { PickerLocatorEntry } from "../types/relay.js";
+import type {
+  ContentPickerClickMessage,
+  ContentPickerEscapeMessage,
+  ContentPickerHoverMessage,
+} from "../types/contentRelay.js";
 
 /** Minimum milliseconds between hover relay messages. */
 const HOVER_THROTTLE_MS = 50;
@@ -19,7 +15,7 @@ const HOVER_THROTTLE_MS = 50;
 let pickerActive = false;
 
 /** Locator table supplied by the DevTools panel. */
-let pickerLocators: ContentPickerLocator[] = [];
+let pickerLocators: PickerLocatorEntry[] = [];
 
 /** Timestamp of the last hover message sent to the background worker. */
 let lastHoverSentAt = 0;
@@ -38,9 +34,8 @@ const findComponentForElement = (target: Element): string | null => {
   let bestDepth = -1;
 
   for (const entry of pickerLocators) {
-    if (!entry.selector) {
+    if (!entry.selector)
       continue;
-    }
 
     let match: Element | null = null;
     try {
@@ -80,11 +75,12 @@ const sendHover = (componentId: string | null): void => {
   lastHoverComponentId = componentId;
   lastHoverSentAt = now;
 
+  const hoverMessage: ContentPickerHoverMessage = {
+    type: "bdt:pickerHover",
+    componentId,
+  };
   chrome.runtime
-    .sendMessage({
-      type: "bdt:pickerHover",
-      componentId,
-    })
+    .sendMessage(hoverMessage)
     .catch(() => {
       // Extension context invalidated after reload; ignore.
     });
@@ -97,11 +93,12 @@ const sendHover = (componentId: string | null): void => {
  * @returns Nothing.
  */
 const sendPick = (componentId: string | null): void => {
+  const clickMessage: ContentPickerClickMessage = {
+    type: "bdt:pickerClick",
+    componentId,
+  };
   chrome.runtime
-    .sendMessage({
-      type: "bdt:pickerClick",
-      componentId,
-    })
+    .sendMessage(clickMessage)
     .catch(() => {
       // Extension context invalidated after reload; ignore.
     });
@@ -114,9 +111,8 @@ const sendPick = (componentId: string | null): void => {
  * @returns Nothing.
  */
 const handleMouseMove = (event: MouseEvent): void => {
-  if (!pickerActive) {
+  if (!pickerActive)
     return;
-  }
 
   const target = document.elementFromPoint(event.clientX, event.clientY);
   if (!target) {
@@ -134,9 +130,8 @@ const handleMouseMove = (event: MouseEvent): void => {
  * @returns Nothing.
  */
 const handleMouseDown = (event: MouseEvent): void => {
-  if (!pickerActive) {
+  if (!pickerActive)
     return;
-  }
 
   event.preventDefault();
   event.stopPropagation();
@@ -153,15 +148,15 @@ const handleMouseDown = (event: MouseEvent): void => {
  * @returns Nothing.
  */
 const handleKeyDown = (event: KeyboardEvent): void => {
-  if (!pickerActive || event.key !== "Escape") {
+  if (!pickerActive || event.key !== "Escape")
     return;
-  }
 
   event.preventDefault();
   event.stopPropagation();
 
+  const escapeMessage: ContentPickerEscapeMessage = { type: "bdt:pickerEscape" };
   chrome.runtime
-    .sendMessage({ type: "bdt:pickerEscape" })
+    .sendMessage(escapeMessage)
     .catch(() => {
       // Extension context invalidated after reload; ignore.
     });
@@ -176,9 +171,8 @@ let listenersAttached = false;
  * @returns Nothing.
  */
 const ensureListeners = (): void => {
-  if (listenersAttached) {
+  if (listenersAttached)
     return;
-  }
 
   document.addEventListener("mousemove", handleMouseMove, true);
   document.addEventListener("mousedown", handleMouseDown, true);
@@ -195,7 +189,7 @@ const ensureListeners = (): void => {
  */
 export const setContentPickerActive = (
   active: boolean,
-  locators: ContentPickerLocator[],
+  locators: PickerLocatorEntry[],
 ): void => {
   ensureListeners();
 
@@ -204,7 +198,6 @@ export const setContentPickerActive = (
   lastHoverComponentId = null;
   lastHoverSentAt = 0;
 
-  if (document.body) {
+  if (document.body)
     document.body.style.cursor = active ? "crosshair" : "";
-  }
 };

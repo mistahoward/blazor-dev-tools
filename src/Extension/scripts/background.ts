@@ -3,9 +3,20 @@
  */
 import { isDevToolsMessage, type DevToolsMessage } from "../types/protocol.js";
 import {
+  type ContentHighlightMessage,
+  type ContentPickerControlMessage,
+  type ContentRefreshMessage,
+  isContentPickerClickMessage,
+  isContentPickerEscapeMessage,
+  isContentPickerHoverMessage,
+} from "../types/contentRelay.js";
+import {
   isPanelConnectMessage,
   isPanelHighlightMessage,
   isPanelPickerControlMessage,
+  type PickerClickRelayMessage,
+  type PickerEscapeRelayMessage,
+  type PickerHoverRelayMessage,
 } from "../types/relay.js";
 
 /** Long-lived DevTools panel ports keyed by inspected tab id. */
@@ -120,7 +131,7 @@ const relayToPanel = (tabId: number, message: DevToolsMessage): void => {
  */
 const relayPickerEventToPanel = (
   tabId: number,
-  message: unknown,
+  message: PickerHoverRelayMessage | PickerClickRelayMessage | PickerEscapeRelayMessage,
 ): void => {
   const port = panelPortsByTabId.get(tabId);
   if (!port) {
@@ -153,14 +164,12 @@ const flushBufferedEnvelope = async (
   let buffered = lastEnvelopeByTabId.get(tabId);
   if (!buffered) {
     buffered = await loadPersistedEnvelope(tabId);
-    if (buffered) {
+    if (buffered)
       lastEnvelopeByTabId.set(tabId, buffered);
-    }
   }
 
-  if (!buffered) {
+  if (!buffered)
     return;
-  }
 
   try {
     port.postMessage(buffered);
@@ -181,9 +190,8 @@ const flushBufferedEnvelope = async (
  * @returns Nothing.
  */
 const handlePanelConnect = (port: chrome.runtime.Port): void => {
-  if (port.name !== "blazor-devtools-panel") {
+  if (port.name !== "blazor-devtools-panel")
     return;
-  }
 
   let tabId: number | undefined;
 
@@ -197,7 +205,8 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
     if (isPanelConnectMessage(message)) {
       tabId = message.tabId;
       panelPortsByTabId.set(tabId, port);
-      chrome.tabs.sendMessage(tabId, { type: "bdt:requestRefresh" }).catch(() => {
+      const refreshMessage: ContentRefreshMessage = { type: "bdt:requestRefresh" };
+      chrome.tabs.sendMessage(tabId, refreshMessage).catch(() => {
         // Content script may not be ready yet; buffered envelope may still apply.
       });
       void flushBufferedEnvelope(tabId, port);
@@ -205,12 +214,13 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
     }
 
     if (isPanelHighlightMessage(message)) {
+      const highlightMessage: ContentHighlightMessage = {
+        type: "bdt:highlight",
+        selector: message.selector,
+        name: message.name,
+      };
       chrome.tabs
-        .sendMessage(message.tabId, {
-          type: "bdt:highlight",
-          selector: message.selector,
-          name: message.name,
-        })
+        .sendMessage(message.tabId, highlightMessage)
         .catch(() => {
           // Content script may not be ready yet.
         });
@@ -218,12 +228,13 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
     }
 
     if (isPanelPickerControlMessage(message)) {
+      const pickerMessage: ContentPickerControlMessage = {
+        type: "bdt:picker",
+        active: message.active,
+        locators: message.locators,
+      };
       chrome.tabs
-        .sendMessage(message.tabId, {
-          type: "bdt:picker",
-          active: message.active,
-          locators: message.locators,
-        })
+        .sendMessage(message.tabId, pickerMessage)
         .catch(() => {
           // Content script may not be ready yet.
         });
@@ -239,12 +250,13 @@ const handlePanelConnect = (port: chrome.runtime.Port): void => {
   const onPanelDisconnect = (): void => {
     if (typeof tabId === "number") {
       panelPortsByTabId.delete(tabId);
+      const disablePickerMessage: ContentPickerControlMessage = {
+        type: "bdt:picker",
+        active: false,
+        locators: [],
+      };
       chrome.tabs
-        .sendMessage(tabId, {
-          type: "bdt:picker",
-          active: false,
-          locators: [],
-        })
+        .sendMessage(tabId, disablePickerMessage)
         .catch(() => {
           // Content script may not be ready yet.
         });
@@ -276,35 +288,23 @@ const handleContentScriptMessage = (
     return false;
   }
 
-  if (typeof message !== "object" || message === null) {
-    return false;
-  }
-
-  const typedMessage = message as { type?: string; componentId?: unknown };
-
-  if (typedMessage.type === "bdt:pickerHover") {
+  if (isContentPickerHoverMessage(message)) {
     relayPickerEventToPanel(tabId, {
       type: "picker:hover",
-      componentId:
-        typeof typedMessage.componentId === "string"
-          ? typedMessage.componentId
-          : null,
+      componentId: message.componentId,
     });
     return false;
   }
 
-  if (typedMessage.type === "bdt:pickerClick") {
+  if (isContentPickerClickMessage(message)) {
     relayPickerEventToPanel(tabId, {
       type: "picker:click",
-      componentId:
-        typeof typedMessage.componentId === "string"
-          ? typedMessage.componentId
-          : null,
+      componentId: message.componentId,
     });
     return false;
   }
 
-  if (typedMessage.type === "bdt:pickerEscape") {
+  if (isContentPickerEscapeMessage(message)) {
     relayPickerEventToPanel(tabId, { type: "picker:escape" });
     return false;
   }

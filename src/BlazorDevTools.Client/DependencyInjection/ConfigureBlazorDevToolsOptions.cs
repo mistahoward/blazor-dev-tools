@@ -9,11 +9,8 @@ namespace BlazorDevTools.Client.DependencyInjection;
 /// Resolves <see cref="BlazorDevToolsOptions.Enabled"/> from the host environment when not explicitly set.
 /// </summary>
 internal sealed class ConfigureBlazorDevToolsOptions(IServiceProvider serviceProvider)
-    : IConfigureOptions<BlazorDevToolsOptions>
-{
-    /// <inheritdoc />
-    public void Configure(BlazorDevToolsOptions options)
-    {
-        options.Enabled ??= serviceProvider.GetService<IHostEnvironment>()?.IsDevelopment() ?? false;
-    }
+	: IConfigureOptions<BlazorDevToolsOptions> {
+	/// <inheritdoc />
+	public void Configure(BlazorDevToolsOptions options) =>
+		options.Enabled ??= serviceProvider.GetService<IHostEnvironment>()?.IsDevelopment() ?? false;
 }

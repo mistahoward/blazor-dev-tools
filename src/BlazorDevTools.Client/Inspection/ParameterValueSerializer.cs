@@ -9,14 +9,14 @@ namespace BlazorDevTools.Client.Inspection;
 /// </summary>
 internal sealed class ParameterValueSerializer
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new()
+    private static readonly JsonSerializerOptions _serializerOptions = new()
     {
         MaxDepth = 4,
         ReferenceHandler = ReferenceHandler.IgnoreCycles,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private static readonly JsonElement ErrorPlaceholder =
+    private static readonly JsonElement _errorPlaceholder =
         JsonSerializer.SerializeToElement("<error>");
 
     /// <summary>
@@ -27,9 +27,7 @@ internal sealed class ParameterValueSerializer
     public JsonElement Serialize(object? value)
     {
         if (value is null)
-        {
-            return JsonSerializer.SerializeToElement((object?)null);
-        }
+            return JsonSerializer.SerializeToElement<object?>(null);
 
         try
         {
@@ -42,7 +40,7 @@ internal sealed class ParameterValueSerializer
                 Type typeValue => JsonSerializer.SerializeToElement(typeValue.FullName ?? typeValue.Name),
                 Delegate => JsonSerializer.SerializeToElement("<Delegate>"),
                 _ when IsEventCallback(value.GetType()) => JsonSerializer.SerializeToElement("<EventCallback>"),
-                _ => JsonSerializer.SerializeToElement(value, value.GetType(), SerializerOptions),
+                _ => JsonSerializer.SerializeToElement(value, value.GetType(), _serializerOptions),
             };
         }
         catch (Exception)
@@ -53,17 +51,22 @@ internal sealed class ParameterValueSerializer
             }
             catch (Exception)
             {
-                return ErrorPlaceholder;
+                return _errorPlaceholder;
             }
         }
     }
 
+    /// <summary>
+    /// Determines whether the specified <see cref="Type"/> represents an <see cref="EventCallback"/> or <see cref="EventCallback{T}"/>.
+    /// </summary>
+    /// <param name="type">The type to inspect.</param>
+    /// <returns>
+    /// <see langword="true"/> if the type is a generic <see cref="EventCallback{T}"/> or a non-generic <see cref="EventCallback"/>; otherwise, <see langword="false"/>.
+    /// </returns>
     private static bool IsEventCallback(Type type)
     {
         if (!type.IsGenericType)
-        {
             return false;
-        }
 
         Type genericDefinition = type.GetGenericTypeDefinition();
         return genericDefinition == typeof(EventCallback<>) || genericDefinition == typeof(EventCallback);

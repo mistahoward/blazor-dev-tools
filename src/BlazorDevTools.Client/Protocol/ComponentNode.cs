@@ -20,15 +20,13 @@ public sealed record ComponentNode
     public IReadOnlyList<ComponentNode> Children { get; init; } = [];
 
     /// <summary>
-    /// Component parameters and cascading values. Omitted on the wire when empty;
-    /// future selection-driven updates may use <see cref="ComponentPropsUpdatePayload"/> instead.
+    /// Component parameters and cascading values. Omitted on the wire when empty.
     /// </summary>
     [JsonPropertyName("parameters")]
     public IReadOnlyList<ComponentParameter> Parameters { get; init; } = [];
 
     /// <summary>
-    /// Services injected into this component. Omitted on the wire when empty;
-    /// future selection-driven updates may use <see cref="ComponentPropsUpdatePayload"/> instead.
+    /// Services injected into this component. Omitted on the wire when empty.
     /// </summary>
     [JsonPropertyName("injections")]
     public IReadOnlyList<ComponentInjection> Injections { get; init; } = [];

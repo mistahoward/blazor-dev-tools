@@ -2,27 +2,12 @@
  * Renders the Blazor component tree as an expandable, selectable list.
  */
 import type { ComponentNode } from "../../types/protocol.js";
+import type { RenderTreeOptions } from "../../types/treeView.js";
 import {
   isReservedNodeId,
   SYNTHETIC_ROOT_ID,
   TRUNCATED_ID,
 } from "./constants.js";
-
-/** Options controlling tree rendering and interaction. */
-export interface RenderTreeOptions {
-  /** Id of the currently selected component, if any. */
-  selectedId: string | null;
-  /** Id of the row currently under the pointer, if any. */
-  hoveredId?: string | null;
-  /** Set of component ids whose children are collapsed. */
-  collapsedIds: ReadonlySet<string>;
-  /** Called when the user selects a component row. */
-  onSelect: (id: string) => void;
-  /** Called when the user toggles expand/collapse on a row. */
-  onToggle: (id: string) => void;
-  /** Called when the pointer enters or leaves a component row. */
-  onHover?: (id: string | null) => void;
-}
 
 /** Whether delegated interaction listeners are attached to the container. */
 const containersWithDelegation = new WeakSet<HTMLElement>();
@@ -52,21 +37,18 @@ export const renderTree = (
   if (!containersWithDelegation.has(container)) {
     container.addEventListener("click", (event) => {
       const currentOpts = optionsByContainer.get(container);
-      if (currentOpts) {
+      if (currentOpts)
         handleTreeClick(event, container, currentOpts);
-      }
     });
     container.addEventListener("mouseover", (event) => {
       const currentOpts = optionsByContainer.get(container);
-      if (currentOpts?.onHover) {
+      if (currentOpts?.onHover)
         handleTreeHover(event, container, currentOpts);
-      }
     });
     container.addEventListener("mouseleave", () => {
       const currentOpts = optionsByContainer.get(container);
-      if (!currentOpts?.onHover) {
+      if (!currentOpts?.onHover)
         return;
-      }
 
       lastHoveredIdByContainer.set(container, null);
       clearHoverClass(container);
@@ -80,9 +62,8 @@ export const renderTree = (
   const topLevelNodes =
     root.id === SYNTHETIC_ROOT_ID ? (root.children ?? []) : [root];
 
-  for (const node of topLevelNodes) {
+  for (const node of topLevelNodes)
     appendNodeRows(container, node, 0, opts);
-  }
 };
 
 /**
@@ -100,14 +81,12 @@ const handleTreeClick = (
 ): void => {
   const target = event.target as HTMLElement;
   const row = target.closest<HTMLElement>("[data-bdt-row]");
-  if (!row || !container.contains(row)) {
+  if (!row || !container.contains(row))
     return;
-  }
 
   const nodeId = row.dataset.bdtId;
-  if (!nodeId || isReservedNodeId(nodeId) || nodeId === TRUNCATED_ID) {
+  if (!nodeId || isReservedNodeId(nodeId) || nodeId === TRUNCATED_ID)
     return;
-  }
 
   const toggleButton = target.closest<HTMLElement>("[data-bdt-action='toggle']");
   if (toggleButton) {
@@ -131,9 +110,8 @@ const handleTreeClick = (
  * @returns Nothing.
  */
 const clearHoverClass = (container: HTMLElement): void => {
-  for (const row of container.querySelectorAll<HTMLElement>(".tree-row--hover")) {
+  for (const row of container.querySelectorAll<HTMLElement>(".tree-row--hover"))
     row.classList.remove("tree-row--hover");
-  }
 };
 
 /**
@@ -146,9 +124,8 @@ const clearHoverClass = (container: HTMLElement): void => {
 const updateHoverClass = (container: HTMLElement, activeRow: HTMLElement): void => {
   clearHoverClass(container);
 
-  if (!activeRow.classList.contains("tree-row--truncated")) {
+  if (!activeRow.classList.contains("tree-row--truncated"))
     activeRow.classList.add("tree-row--hover");
-  }
 };
 
 /**
@@ -179,14 +156,12 @@ const handleTreeHover = (
   }
 
   const nodeId = row.dataset.bdtId;
-  if (!nodeId || isReservedNodeId(nodeId) || nodeId === TRUNCATED_ID) {
+  if (!nodeId || isReservedNodeId(nodeId) || nodeId === TRUNCATED_ID)
     return;
-  }
 
   const lastHoveredId = lastHoveredIdByContainer.get(container) ?? null;
-  if (nodeId === lastHoveredId) {
+  if (nodeId === lastHoveredId)
     return;
-  }
 
   lastHoveredIdByContainer.set(container, nodeId);
   updateHoverClass(container, row);
@@ -230,13 +205,11 @@ const appendNodeRows = (
   if (isSelected) {
     row.classList.add("selected");
     row.setAttribute("aria-selected", "true");
-  } else {
+  } else
     row.setAttribute("aria-selected", "false");
-  }
 
-  if (isHovered) {
+  if (isHovered)
     row.classList.add("tree-row--hover");
-  }
 
   const toggle = document.createElement("button");
   toggle.type = "button";
@@ -247,9 +220,8 @@ const appendNodeRows = (
   if (!hasChildren || isTruncated) {
     toggle.classList.add("tree-toggle--leaf");
     toggle.textContent = "";
-  } else {
+  } else
     toggle.textContent = isCollapsed ? "\u25B6" : "\u25BC";
-  }
 
   const label = document.createElement("span");
   label.className = "tree-label";
@@ -260,9 +232,7 @@ const appendNodeRows = (
   row.appendChild(label);
   container.appendChild(row);
 
-  if (hasChildren && !isCollapsed && !isTruncated) {
-    for (const child of children) {
+  if (hasChildren && !isCollapsed && !isTruncated)
+    for (const child of children)
       appendNodeRows(container, child, depth + 1, opts);
-    }
-  }
 };

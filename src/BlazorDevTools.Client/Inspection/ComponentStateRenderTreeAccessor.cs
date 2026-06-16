@@ -22,14 +22,10 @@ internal static class ComponentStateRenderTreeAccessor
             RenderTreeBuilder builder = GetCurrentRenderTree(componentState);
             ArrayRange<RenderTreeFrame> range = builder.GetFrames();
             if (range.Count <= 0)
-            {
                 return [];
-            }
 
             if (range.Count == range.Array.Length)
-            {
                 return range.Array;
-            }
 
             var snapshot = new RenderTreeFrame[range.Count];
             Array.Copy(range.Array, snapshot, range.Count);

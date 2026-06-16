@@ -13,8 +13,6 @@ export const PROTOCOL_VERSION = 1 as const;
 /** Runtime message type discriminators (usable from plain JS after compile). */
 export const MessageType = {
   ComponentTreeUpdate: "componentTreeUpdate",
-  ComponentSelection: "componentSelection",
-  ComponentPropsUpdate: "componentPropsUpdate",
 } as const;
 
 /** Union of all domain message type string values. */
@@ -30,13 +28,11 @@ export interface ComponentNode {
   /** Child components rendered by this component. */
   children: ComponentNode[];
   /**
-   * Component parameters and cascading values. Optional on the wire when empty;
-   * selection-driven detail may arrive via {@link ComponentPropsUpdatePayload}.
+   * Component parameters and cascading values. Optional on the wire when empty.
    */
   parameters?: ComponentParameter[];
   /**
-   * Services injected into this component. Optional on the wire when empty;
-   * selection-driven detail may arrive via {@link ComponentPropsUpdatePayload}.
+   * Services injected into this component. Optional on the wire when empty.
    */
   injections?: ComponentInjection[];
   /**
@@ -72,22 +68,6 @@ export interface ComponentTreeUpdatePayload {
   root: ComponentNode;
 }
 
-/** Payload when the user selects a component in the DevTools panel. */
-export interface ComponentSelectionPayload {
-  /** Identifier of the selected component. */
-  componentId: string;
-}
-
-/** Payload with parameters and injections for a specific component. */
-export interface ComponentPropsUpdatePayload {
-  /** Identifier of the component whose props are described. */
-  componentId: string;
-  /** Component parameters and their values. */
-  parameters: ComponentParameter[];
-  /** Services injected into the component. */
-  injections: ComponentInjection[];
-}
-
 /** Base envelope wrapping all domain messages. */
 export interface DevToolsEnvelope<
   TType extends MessageTypeValue,
@@ -109,23 +89,8 @@ export type ComponentTreeUpdateMessage = DevToolsEnvelope<
   ComponentTreeUpdatePayload
 >;
 
-/** Envelope carrying a component selection event. */
-export type ComponentSelectionMessage = DevToolsEnvelope<
-  typeof MessageType.ComponentSelection,
-  ComponentSelectionPayload
->;
-
-/** Envelope carrying component parameters and injections. */
-export type ComponentPropsUpdateMessage = DevToolsEnvelope<
-  typeof MessageType.ComponentPropsUpdate,
-  ComponentPropsUpdatePayload
->;
-
 /** Discriminated union of all domain DevTools messages. */
-export type DevToolsMessage =
-  | ComponentTreeUpdateMessage
-  | ComponentSelectionMessage
-  | ComponentPropsUpdateMessage;
+export type DevToolsMessage = ComponentTreeUpdateMessage;
 
 /**
  * Determines whether a value is a valid Blazor Dev Tools domain protocol envelope.
