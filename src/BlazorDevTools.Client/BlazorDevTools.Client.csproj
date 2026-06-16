@@ -4,10 +4,38 @@
     <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <!-- BL0006: RenderTree/Renderer types are required to inspect the component tree; suppress for this dev-tools library. -->
     <NoWarn>$(NoWarn);BL0006</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Blazor.DevTools</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Alex Howard</Authors>
+    <Company>Alex Howard</Company>
+    <Title>Blazor Dev Tools</Title>
+    <Description>A React DevTools-like experience for Blazor applications (Server and WebAssembly). Inspect the component tree, view parameters and cascading values, and explore what dependency injection resolved from a dedicated panel inside Chrome DevTools. Requires the companion Blazor Dev Tools Chrome extension.</Description>
+    <PackageTags>blazor;devtools;debugging;chrome-extension;component-inspector;diagnostics;webassembly;blazor-server</PackageTags>
+    <PackageProjectUrl>https://github.com/mistahoward/blazor-dev-tools</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mistahoward/blazor-dev-tools.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>Initial 1.0.0 release. See CHANGELOG.md for details.</PackageReleaseNotes>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="..\Extension\icons\icon128.png" Pack="true" PackagePath="icon.png" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
