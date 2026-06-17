@@ -16,7 +16,7 @@ npm run package
 # NuGet package
 cd ../..
 dotnet pack src/BlazorDevTools.Client/BlazorDevTools.Client.csproj -c Release -o artifacts
-# -> artifacts/Blazor.DevTools.1.0.0.nupkg + .snupkg
+# -> artifacts/Blazor.Browser.DevTools.1.0.0.nupkg + .snupkg
 ```
 
 ## Chrome Web Store
@@ -37,7 +37,7 @@ dotnet pack src/BlazorDevTools.Client/BlazorDevTools.Client.csproj -c Release -o
 
 > Blazor Dev Tools brings a React DevTools-like experience to Blazor applications (Server and WebAssembly). Inspect your component tree, view parameters and cascading values, and understand what the dependency injection container resolved — all from a dedicated **Blazor** panel inside Chrome DevTools.
 >
-> Requires the companion **Blazor.DevTools** NuGet package in your Blazor app (`dotnet add package Blazor.DevTools`). Dev Tools is disabled by default outside the Development environment.
+> Requires the companion **Blazor.Browser.DevTools** NuGet package in your Blazor app (`dotnet add package Blazor.Browser.DevTools`). Dev Tools is disabled by default outside the Development environment.
 
 - **Category:** Developer Tools
 - **Language:** English
@@ -66,7 +66,7 @@ Submit for review. First upload is version **1.0.0** (no version bump needed).
 ### Push
 
 ```bash
-dotnet nuget push artifacts/Blazor.DevTools.1.0.0.nupkg \
+dotnet nuget push artifacts/Blazor.Browser.DevTools.1.0.0.nupkg \
   --api-key <YOUR_NUGET_API_KEY> \
   --source https://api.nuget.org/v3/index.json
 ```
@@ -75,7 +75,7 @@ The matching `.snupkg` is pushed automatically when present alongside the `.nupk
 
 ### Verify
 
-After indexing (usually a few minutes), confirm on [nuget.org/packages/Blazor.DevTools](https://www.nuget.org/packages/Blazor.DevTools):
+After indexing (usually a few minutes), confirm on [nuget.org/packages/Blazor.Browser.DevTools](https://www.nuget.org/packages/Blazor.Browser.DevTools):
 
 - README renders correctly
 - Icon displays
@@ -85,7 +85,7 @@ After indexing (usually a few minutes), confirm on [nuget.org/packages/Blazor.De
 
 After both artifacts are live, create the `v1.0.0` release (or update its notes) with links:
 
-- NuGet: https://www.nuget.org/packages/Blazor.DevTools
+- NuGet: https://www.nuget.org/packages/Blazor.Browser.DevTools
 - Chrome Web Store: _(add your listing URL once approved)_
 
 Release notes should mirror [CHANGELOG.md](CHANGELOG.md).

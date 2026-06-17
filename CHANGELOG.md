@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-06-17
 
-Initial production release of the **Blazor.DevTools** NuGet library and the companion **Blazor Dev Tools** Chrome extension.
+Initial production release of the **Blazor.Browser.DevTools** NuGet library and the companion **Blazor Dev Tools** Chrome extension.
 
 ### Added
 
-- **Blazor.DevTools NuGet library** targeting .NET 9 and .NET 10.
+- **Blazor.Browser.DevTools NuGet library** targeting .NET 9 and .NET 10.
 - **Component tree inspection**: live, nested view of the rendered Blazor component hierarchy.
 - **Parameter & cascading value viewing**: parameter names, declared types, and serialized values per component.
 - **Dependency injection introspection**: injected services with declared service type and resolved implementation type.

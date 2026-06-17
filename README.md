@@ -1,7 +1,7 @@
 # Blazor Dev Tools
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S3XYOL5)
-[![NuGet](https://img.shields.io/nuget/v/Blazor.DevTools)](https://www.nuget.org/packages/Blazor.DevTools)
+[![NuGet](https://img.shields.io/nuget/v/Blazor.Browser.DevTools)](https://www.nuget.org/packages/Blazor.Browser.DevTools)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
 A [React DevTools](https://react.dev/learn/react-developer-tools)-like experience for [Blazor](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor) applications (Server and WebAssembly). Inspect your component tree, view parameters and cascading values, and understand what the dependency injection container resolved, all from a dedicated **Blazor** panel inside Chrome DevTools.
@@ -10,7 +10,7 @@ Blazor Dev Tools has two cooperating parts:
 
 | Part | Location | Role |
 |------|----------|------|
-| Blazor library (NuGet) | `Blazor.DevTools` | Hooks into the Blazor runtime, inspects components via reflection, and exposes inspection data over a JSON protocol |
+| Blazor library (NuGet) | `Blazor.Browser.DevTools` | Hooks into the Blazor runtime, inspects components via reflection, and exposes inspection data over a JSON protocol |
 | Chrome Extension | `src/Extension` | DevTools panel, background relay, and content-script bridge that renders the inspection data |
 
 ## Features
@@ -29,7 +29,7 @@ Blazor Dev Tools has two cooperating parts:
 Install the NuGet package into your Blazor app:
 
 ```bash
-dotnet add package Blazor.DevTools
+dotnet add package Blazor.Browser.DevTools
 ```
 
 Then install the **Blazor Dev Tools** Chrome extension (see [Installing the Chrome extension](#installing-the-chrome-extension)).
@@ -104,7 +104,7 @@ cd MyBlazorApp
 
 #### Step 2: Install Package
 ```bash
-dotnet add package Blazor.DevTools
+dotnet add package Blazor.Browser.DevTools
 ```
 
 #### Step 3: Configure Services
@@ -146,7 +146,7 @@ In `App.razor`, render the initializer with an interactive render mode so it can
 
 #### Step 1: Install Package
 ```bash
-dotnet add package Blazor.DevTools
+dotnet add package Blazor.Browser.DevTools
 ```
 
 #### Step 2: Add Service Registration
@@ -164,7 +164,7 @@ Add `<DevToolsInitializer />` once in your interactive root (for example `App.ra
 
 #### Step 1: Install Package
 ```bash
-dotnet add package Blazor.DevTools
+dotnet add package Blazor.Browser.DevTools
 ```
 
 #### Step 2: Configure Services
@@ -302,7 +302,7 @@ flowchart LR
   backgroundSw["Background Service Worker"]
   contentScript["Content Script"]
   jsonProtocol["JSON Messaging Protocol"]
-  blazorLib["Blazor.DevTools (library)"]
+  blazorLib["Blazor.Browser.DevTools (library)"]
 
   devtoolsPanel --> backgroundSw
   backgroundSw --> contentScript
@@ -315,7 +315,7 @@ flowchart LR
 1. **DevTools panel** (`panel.html` / `panel.js`) renders the component tree and property inspector.
 2. **Background service worker** (`background.js`) relays messages between the panel and the inspected tab.
 3. **Content script** (`content.js`) is injected into the page and bridges to the in-page Blazor runtime via same-origin `window.postMessage`.
-4. **Blazor library** (`Blazor.DevTools`) inspects components and serializes state into the JSON protocol.
+4. **Blazor library** (`Blazor.Browser.DevTools`) inspects components and serializes state into the JSON protocol.
 
 Wasm vs. Server hosting is abstracted inside the library so both hosting models are exercised with the same extension.
 
