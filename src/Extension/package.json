@@ -6,11 +6,15 @@
   "scripts": {
     "build": "tsc && npm run build:content",
     "build:content": "esbuild scripts/content.ts --bundle --format=iife --outfile=dist/scripts/content.js --platform=browser --target=es2020",
+    "package": "tsc && npm run build:content && tsc -p tsconfig.tools.json && node tools-dist/package-extension.js",
     "watch": "tsc -w",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/chrome": "^0.0.323",
+    "@types/node": "^22.15.21",
+    "archiver": "^7.0.1",
     "esbuild": "^0.28.1",
     "typescript": "^5.8.3"
   }
