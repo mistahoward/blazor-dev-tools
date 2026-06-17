@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-06-17
+
+### Fixed
+
+- **Static web asset 404 after package rename**: pinned `StaticWebAssetBasePath` to `_content/BlazorDevTools.Client` so the runtime JS interop (`blazorDevToolsInterop.js`) is served at a stable path independent of `PackageId`. Without this, the renamed NuGet package served the interop under `_content/Blazor.Browser.DevTools/`, causing a 404 and an empty DevTools panel.
+- **Docs**: corrected the production-gate verification snippet in the README to use the actual protocol identifier `blazor-devtools` (was `blazorDevTools`).
+
 ## [1.0.0] - 2026-06-17
 
 Initial production release of the **Blazor.Browser.DevTools** NuGet library and the companion **Blazor Dev Tools** Chrome extension.

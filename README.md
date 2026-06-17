@@ -286,7 +286,7 @@ When testing that Production suppresses Dev Tools, use a page-level listener in 
 
 ```javascript
 window.addEventListener("message", (e) => {
-  if (e.data?.protocol === "blazorDevTools") console.log("LEAK", e.data);
+  if (e.data?.protocol === "blazor-devtools") console.log("LEAK", e.data);
 });
 ```
 
