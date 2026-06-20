@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-20
+
+### Fixed
+
+- **Descendant re-render refresh**: component tree snapshots now refresh when descendant components re-render (e.g. after a skeleton resolves to content), via a debounced DOM `MutationObserver` routed through the existing hash-dedup pipeline.
+
+### Added
+
+- **Live Update sample page** (`/live-update`) in Server and Wasm samples for verifying panel updates without navigation or panel reopen.
+- **TypeScript interop source** for `blazorDevToolsInterop.js` under `src/BlazorDevTools.Client/scripts/`, built to `wwwroot/` via esbuild.
+
 ## [1.1.0] - 2026-06-20
 
 ### Fixed
@@ -48,5 +59,6 @@ Initial production release of the **Blazor.Browser.DevTools** NuGet library and 
 - **Official Blazor branding icons** for the Chrome extension and NuGet package.
 - **Automated store-ready zip packaging** via `npm run package` in `src/Extension`.
 
+[1.1.1]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.1
 [1.1.0]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.0.0

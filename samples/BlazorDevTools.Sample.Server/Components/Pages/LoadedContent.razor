@@ -1,0 +1,17 @@
+<section class="loaded-content">
+    <h2>@Title</h2>
+    <ul>
+        @for (int i = 1; i <= ItemCount; i++)
+        {
+            <li>Item @i</li>
+        }
+    </ul>
+</section>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Loaded";
+
+    [Parameter]
+    public int ItemCount { get; set; } = 1;
+}

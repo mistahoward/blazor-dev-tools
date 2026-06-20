@@ -5,7 +5,7 @@ Thanks for your interest in contributing! This project has two cooperating parts
 ## Prerequisites
 
 - [.NET SDK](https://dotnet.microsoft.com/download) 9.0 or later (both 9.0 and 10.0 are targeted)
-- [Node.js](https://nodejs.org/) (LTS) and npm for the Chrome extension
+- [Node.js](https://nodejs.org/) (LTS) and npm for the Chrome extension and the Blazor client interop scripts
 - [Google Chrome](https://www.google.com/chrome/) (or a Chromium-based browser with DevTools extension support)
 
 ## Building
@@ -13,6 +13,11 @@ Thanks for your interest in contributing! This project has two cooperating parts
 ### Blazor library and samples
 
 ```bash
+# Build the JS interop module (TypeScript -> wwwroot/blazorDevToolsInterop.js)
+cd src/BlazorDevTools.Client
+npm install
+npm run build
+
 # Restore and build the whole solution
 dotnet build BlazorDevTools.sln
 
@@ -57,7 +62,7 @@ This repository follows the architecture and code-generation guidelines in
 
 - Open an issue to discuss larger changes before submitting a PR.
 - Keep pull requests focused and small.
-- Ensure `dotnet test BlazorDevTools.sln`, `dotnet build BlazorDevTools.sln`, and `npm run build` (in `src/Extension`) succeed before submitting.
+- Ensure `dotnet test BlazorDevTools.sln`, `dotnet build BlazorDevTools.sln`, `npm run build` (in `src/BlazorDevTools.Client` and `src/Extension`) succeed before submitting.
 - Use the **Deep Tree** sample page (`/deep-tree`) to verify truncation and depth behavior in the Blazor DevTools panel.
 - Update [CHANGELOG.md](CHANGELOG.md) under an `Unreleased` section when your change is user-facing.
 

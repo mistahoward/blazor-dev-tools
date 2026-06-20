@@ -1,0 +1,15 @@
+{
+  "name": "blazor-dev-tools-client",
+  "private": true,
+  "version": "1.1.1",
+  "description": "Blazor Dev Tools client library JS interop",
+  "scripts": {
+    "build": "esbuild scripts/blazorDevToolsInterop.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=wwwroot/blazorDevToolsInterop.js",
+    "typecheck": "tsc --noEmit",
+    "watch": "npm run build -- --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "typescript": "^5.8.3"
+  }
+}

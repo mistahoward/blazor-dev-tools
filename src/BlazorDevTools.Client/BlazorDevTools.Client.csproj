@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <PackageId>Blazor.Browser.DevTools</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>Alex Howard</Authors>
     <Company>Alex Howard</Company>
     <Title>Blazor Dev Tools</Title>
@@ -50,5 +50,16 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(AspNetCoreVersion)" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="$(AspNetCoreVersion)" />
   </ItemGroup>
+
+  <!--
+    blazorDevToolsInterop.js is authored in TypeScript (scripts/) and emitted to wwwroot via esbuild.
+    Run "npm install && npm run build" in this project directory when changing interop scripts.
+  -->
+  <Target Name="BuildBlazorDevToolsInterop" BeforeTargets="BeforeBuild"
+          Condition="Exists('$(MSBuildProjectDirectory)\package.json')">
+    <Exec Command="npm run build"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="Exists('$(MSBuildProjectDirectory)\node_modules\esbuild\bin\esbuild')" />
+  </Target>
 
 </Project>

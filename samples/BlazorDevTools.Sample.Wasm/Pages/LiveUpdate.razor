@@ -1,0 +1,40 @@
+@page "/live-update"
+
+<PageTitle>Live Update</PageTitle>
+
+<h1>Live Update</h1>
+
+<p>
+    Open the Blazor DevTools panel before the countdown finishes.
+    The component tree should update when content replaces the skeleton without navigating or reopening the panel.
+</p>
+
+<p>Loading in @_secondsRemaining s…</p>
+
+@if (_loaded)
+{
+    <LoadedContent Title="Wasm sample loaded" ItemCount="3" />
+}
+else
+{
+    <SkeletonPlaceholder Label="Fetching data…" />
+}
+
+@code {
+    private const int LoadDelaySeconds = 3;
+
+    private bool _loaded;
+    private int _secondsRemaining = LoadDelaySeconds;
+
+    protected override async Task OnInitializedAsync()
+    {
+        for (int i = LoadDelaySeconds; i > 0; i--)
+        {
+            _secondsRemaining = i;
+            StateHasChanged();
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+
+        _loaded = true;
+    }
+}

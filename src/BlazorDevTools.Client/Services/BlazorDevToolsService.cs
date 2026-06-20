@@ -83,6 +83,7 @@ internal sealed class BlazorDevToolsService(
 
     /// <summary>
     /// Invoked from JavaScript when the DevTools panel requests a fresh tree snapshot.
+    /// Clears the payload hash so the next capture is always dispatched even if the tree is unchanged.
     /// </summary>
     [JSInvokable]
     public void OnRefreshRequested()
@@ -91,10 +92,43 @@ internal sealed class BlazorDevToolsService(
         RequestRefresh();
     }
 
+    /// <summary>
+    /// Invoked from JavaScript when the DOM mutates after a descendant component re-render.
+    /// Requests a refresh without clearing the payload hash so unchanged trees are deduplicated.
+    /// Complements <see cref="DevToolsInitializer"/> navigation and per-render refresh paths.
+    /// </summary>
+    [JSInvokable]
+    public void OnRenderActivity() => RequestRefresh();
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+
+        if (_moduleTask.IsValueCreated)
+        {
+            try
+            {
+                IJSObjectReference module = await _moduleTask.Value;
+                await module.InvokeVoidAsync("stopObserving");
+            }
+            catch (JSException)
+            {
+                // Circuit disconnected or interop unavailable during teardown.
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected during teardown.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Module or circuit already disposed.
+            }
+            catch (InvalidOperationException)
+            {
+                // Circuit not yet interactive or already torn down.
+            }
+        }
 
         _dotNetRef?.Dispose();
         _dotNetRef = null;

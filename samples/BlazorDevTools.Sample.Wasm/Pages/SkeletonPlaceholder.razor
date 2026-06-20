@@ -1,0 +1,10 @@
+<div class="skeleton-placeholder" aria-busy="true">
+    <p class="skeleton-line">@Label</p>
+    <div class="skeleton-block"></div>
+    <div class="skeleton-block short"></div>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Loading…";
+}
