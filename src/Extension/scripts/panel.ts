@@ -42,6 +42,9 @@ let hoveredId: string | null = null;
 /** Component ids whose children are collapsed in the tree view. */
 const collapsedIds = new Set<string>();
 
+/** Component ids seen in prior snapshots; used to default-collapse only new nodes. */
+const knownNodeIds = new Set<string>();
+
 /** Lookup of selectable component nodes by id from the latest tree. */
 const nodeIndex = new Map<string, ComponentNode>();
 
@@ -137,6 +140,7 @@ const resetTreeState = (): void => {
   nodeIndex.clear();
   depthByNodeId.clear();
   collapsedIds.clear();
+  knownNodeIds.clear();
   sendPanelHighlight(null);
   render();
 };
@@ -244,6 +248,34 @@ const rebuildNodeIndex = (root: ComponentNode): void => {
 };
 
 /**
+ * Collapses branch nodes by default so large trees stay navigable.
+ * New nodes start collapsed; previously expanded nodes keep their state across refreshes.
+ *
+ * @param root - Root node of the component tree.
+ * @returns Nothing.
+ */
+const applyDefaultCollapse = (root: ComponentNode): void => {
+  const walk = (node: ComponentNode): void => {
+    const children = node.children ?? [];
+    if (
+      children.length > 0 &&
+      node.id !== SYNTHETIC_ROOT_ID &&
+      !knownNodeIds.has(node.id)
+    ) {
+      collapsedIds.add(node.id);
+    }
+
+    for (const child of children)
+      walk(child);
+  };
+
+  walk(root);
+
+  for (const id of nodeIndex.keys())
+    knownNodeIds.add(id);
+};
+
+/**
  * Removes selection and collapse state for ids no longer present in the tree.
  *
  * @returns Nothing.
@@ -307,6 +339,45 @@ const syncPickerToggleUi = (): void => {
 };
 
 /**
+ * Expands ancestor branches so a selected node is visible in a collapsed tree.
+ *
+ * @param targetId - Component id to reveal.
+ * @returns Nothing.
+ */
+const expandAncestorsForSelection = (targetId: string): void => {
+  if (!currentRoot) {
+    return;
+  }
+
+  const findAncestorIds = (
+    node: ComponentNode,
+    ancestors: string[],
+  ): string[] | null => {
+    if (node.id === targetId) {
+      return ancestors;
+    }
+
+    for (const child of node.children ?? []) {
+      const found = findAncestorIds(child, [...ancestors, node.id]);
+      if (found !== null) {
+        return found;
+      }
+    }
+
+    return null;
+  };
+
+  const ancestorIds = findAncestorIds(currentRoot, []);
+  if (ancestorIds === null) {
+    return;
+  }
+
+  for (const id of ancestorIds) {
+    collapsedIds.delete(id);
+  }
+};
+
+/**
  * Selects a component by id and updates the tree, details, and page highlight.
  *
  * @param id - Component id to select.
@@ -317,6 +388,7 @@ const selectComponent = (id: string): void => {
     return;
   }
 
+  expandAncestorsForSelection(id);
   selectedId = id;
   hoveredId = null;
   render();
@@ -508,6 +580,7 @@ const render = (): void => {
 const applyTreeUpdate = (root: ComponentNode): void => {
   currentRoot = root;
   rebuildNodeIndex(root);
+  applyDefaultCollapse(root);
   pruneStaleState();
   render();
 

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-06-20
+
+### Fixed
+
+- **Component tree capture**: removed the 500-node budget that emitted `(...truncated)` placeholders; all components in the renderer snapshot are now included (depth beyond 64 still omits deeper descendants only).
+- **Chrome extension — default collapse**: branch nodes start collapsed so large trees stay navigable; expand toggles reveal children on demand, and selecting a component expands its ancestor path automatically.
+
 ## [1.1.2] - 2026-06-20
 
 Aligned **NuGet** and **Chrome extension** release versions (both `1.1.2`). The library package has no functional changes since `1.1.1`; update the extension for the panel fix below.
@@ -67,6 +74,7 @@ Initial production release of the **Blazor.Browser.DevTools** NuGet library and 
 - **Official Blazor branding icons** for the Chrome extension and NuGet package.
 - **Automated store-ready zip packaging** via `npm run package` in `src/Extension`.
 
+[1.1.3]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.3
 [1.1.2]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.2
 [1.1.1]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.1
 [1.1.0]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.0

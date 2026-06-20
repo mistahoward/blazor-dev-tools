@@ -13,9 +13,7 @@ namespace BlazorDevTools.Client.Inspection;
 internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer valueSerializer)
 	: IComponentTreeInspector {
 	private const int _maxDepth = 64;
-	private const int _maxNodes = 500;
 	private const string _syntheticRootId = "__bdt_root__";
-	private const string _truncatedNodeId = "__bdt_truncated__";
 
 	private static readonly BindingFlags _propertyFlags =
 		BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -76,7 +74,6 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 			}
 
 			var visited = new HashSet<int>();
-			var nodeBudget = new NodeBudget(_maxNodes);
 			var flatNodes = new List<ComponentNode>();
 
 			switch (rootIds.Count) {
@@ -90,25 +87,18 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 						nodesById,
 						childrenByParentId,
 						visited,
-						nodeBudget,
 						depth: 0,
 						flatNodes);
 					break;
 				default:
 					flatNodes.Add(CreateSyntheticRootNode());
 					foreach (int rootId in rootIds) {
-						if (!nodeBudget.HasRemaining) {
-							flatNodes.Add(CreateFlatTruncationNode(_syntheticRootId));
-							break;
-						}
-
 						EmitFlatSubtree(
 							rootId,
 							parentId: _syntheticRootId,
 							nodesById,
 							childrenByParentId,
 							visited,
-							nodeBudget,
 							depth: 1,
 							flatNodes);
 					}
@@ -131,12 +121,9 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 		IReadOnlyDictionary<int, ComponentStateInfo> nodesById,
 		IReadOnlyDictionary<int, List<int>> childrenByParentId,
 		HashSet<int> visited,
-		NodeBudget nodeBudget,
 		int depth,
 		List<ComponentNode> output) {
-		if (!visited.Add(id) || !nodeBudget.TryConsume() || !nodesById.TryGetValue(id, out ComponentStateInfo? info) ||
-		    depth >= _maxDepth) {
-			output.Add(CreateFlatTruncationNode(parentId));
+		if (!visited.Add(id) || !nodesById.TryGetValue(id, out ComponentStateInfo? info)) {
 			return;
 		}
 
@@ -144,20 +131,18 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 			string nodeId = id.ToString();
 			output.Add(BuildNodePayload(info, parentId, nodesById));
 
+			if (depth >= _maxDepth) {
+				return;
+			}
+
 			if (childrenByParentId.TryGetValue(id, out List<int>? childIds)) {
 				foreach (int childId in childIds) {
-					if (!nodeBudget.HasRemaining) {
-						output.Add(CreateFlatTruncationNode(nodeId));
-						break;
-					}
-
 					EmitFlatSubtree(
 						childId,
 						nodeId,
 						nodesById,
 						childrenByParentId,
 						visited,
-						nodeBudget,
 						depth + 1,
 						output);
 				}
@@ -205,13 +190,6 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 		new() {
 			Id = _syntheticRootId,
 			Name = "Root",
-		};
-
-	private static ComponentNode CreateFlatTruncationNode(string? parentId) =>
-		new() {
-			Id = _truncatedNodeId,
-			Name = "(...truncated)",
-			ParentId = parentId,
 		};
 
 	/// <summary>
@@ -442,46 +420,4 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	private sealed record AnnotatedProperties(
 		PropertyInfo[] Parameters,
 		PropertyInfo[] Injections);
-
-	/// <summary>
-	/// Represents a simple budget for limiting the number of component nodes that may be processed.
-	/// Used to enforce an upper bound during component tree reflection to prevent
-	/// performance issues or excessive depth traversal.
-	/// </summary>
-	/// <remarks>
-	/// The budget is decremented each time a node is consumed. When depleted, no further nodes should be traversed.
-	/// </remarks>
-	private sealed class NodeBudget
-	{
-		private int _remaining;
-
-		/// <summary>
-		/// Initializes a new instance of the <see cref="NodeBudget"/> class with the specified maximum number of nodes.
-		/// </summary>
-		/// <param name="maxNodes">The maximum number of nodes that may be processed.</param>
-		public NodeBudget(int maxNodes)
-		{
-			_remaining = maxNodes;
-		}
-
-		/// <summary>
-		/// Gets a value indicating whether there is remaining budget to process at least one more node.
-		/// </summary>
-		public bool HasRemaining => _remaining > 0;
-
-		/// <summary>
-		/// Attempts to consume one unit from the node budget.
-		/// </summary>
-		/// <returns>
-		/// <c>true</c> if a unit was successfully consumed and there is remaining budget; otherwise, <c>false</c>.
-		/// </returns>
-		public bool TryConsume()
-		{
-			if (_remaining <= 0)
-				return false;
-
-			_remaining--;
-			return true;
-		}
-	}
 }
