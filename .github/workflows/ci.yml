@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Restore, test, and build
+        run: |
+          dotnet restore BlazorDevTools.sln
+          dotnet test BlazorDevTools.sln --no-restore
+          dotnet build BlazorDevTools.sln --no-restore
+
+      - name: Build extension
+        working-directory: src/Extension
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build

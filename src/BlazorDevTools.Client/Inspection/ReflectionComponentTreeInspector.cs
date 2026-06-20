@@ -77,123 +77,149 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 
 			var visited = new HashSet<int>();
 			var nodeBudget = new NodeBudget(_maxNodes);
+			var flatNodes = new List<ComponentNode>();
 
-			ComponentNode root = rootIds.Count switch {
-				0 => CreateSyntheticRoot([]),
-				1 => BuildNode(rootIds[0], nodesById, childrenByParentId, visited, nodeBudget, depth: 0),
-				_ => CreateSyntheticRoot(rootIds
-					.Select(id => BuildNode(id, nodesById, childrenByParentId, visited, nodeBudget, depth: 1))
-					.ToList()),
-			};
+			switch (rootIds.Count) {
+				case 0:
+					flatNodes.Add(CreateSyntheticRootNode());
+					break;
+				case 1:
+					EmitFlatSubtree(
+						rootIds[0],
+						parentId: null,
+						nodesById,
+						childrenByParentId,
+						visited,
+						nodeBudget,
+						depth: 0,
+						flatNodes);
+					break;
+				default:
+					flatNodes.Add(CreateSyntheticRootNode());
+					foreach (int rootId in rootIds) {
+						if (!nodeBudget.HasRemaining) {
+							flatNodes.Add(CreateFlatTruncationNode(_syntheticRootId));
+							break;
+						}
 
-			return new ComponentTreeUpdatePayload { Root = root };
+						EmitFlatSubtree(
+							rootId,
+							parentId: _syntheticRootId,
+							nodesById,
+							childrenByParentId,
+							visited,
+							nodeBudget,
+							depth: 1,
+							flatNodes);
+					}
+
+					break;
+			}
+
+			return new ComponentTreeUpdatePayload { Nodes = flatNodes };
 		} catch (Exception) {
 			return null;
 		}
 	}
 
 	/// <summary>
-	/// Recursively builds a <see cref="ComponentNode"/> representing a single component and its subtree, including its parameters, dependency injections, children, and relevant locator information.
-	/// This method applies depth and node budget constraints and gracefully creates truncation nodes or error nodes as needed to prevent excessive tree size or stack overflows.
+	/// Emits a component subtree as flat nodes using depth-first traversal from a root id.
 	/// </summary>
-	/// <param name="id">The unique identifier of the component node to build.</param>
-	/// <param name="nodesById">A mapping from component IDs to their corresponding <see cref="ComponentStateInfo"/>.</param>
-	/// <param name="childrenByParentId">A map where each parent component ID maps to a list of its direct child component IDs.</param>
-	/// <param name="visited">A set tracking component IDs that have already been visited, preventing cycles.</param>
-	/// <param name="nodeBudget">The current <see cref="NodeBudget"/>, limiting the total number of nodes in the tree.</param>
-	/// <param name="depth">The current recursion depth, used to enforce max tree depth restrictions.</param>
-	/// <returns>
-	/// A <see cref="ComponentNode"/> representing the component and its children, or a special truncation node if limits are reached, or an error node if an exception occurs.
-	/// </returns>
-	private ComponentNode BuildNode(
+	private void EmitFlatSubtree(
 		int id,
+		string? parentId,
 		IReadOnlyDictionary<int, ComponentStateInfo> nodesById,
 		IReadOnlyDictionary<int, List<int>> childrenByParentId,
 		HashSet<int> visited,
 		NodeBudget nodeBudget,
-		int depth) {
+		int depth,
+		List<ComponentNode> output) {
 		if (!visited.Add(id) || !nodeBudget.TryConsume() || !nodesById.TryGetValue(id, out ComponentStateInfo? info) ||
-		    depth >= _maxDepth)
-			return CreateTruncationNode();
+		    depth >= _maxDepth) {
+			output.Add(CreateFlatTruncationNode(parentId));
+			return;
+		}
 
 		try {
-			string name = GetComponentName(info.Component);
-			IReadOnlyList<ComponentParameter> parameters = ExtractParameters(info.Component);
-			IReadOnlyList<ComponentInjection> injections = ExtractInjections(info.Component);
-			string? locator = BuildLocator(info, nodesById);
+			string nodeId = id.ToString();
+			output.Add(BuildNodePayload(info, parentId, nodesById));
 
-			var children = new List<ComponentNode>();
 			if (childrenByParentId.TryGetValue(id, out List<int>? childIds)) {
 				foreach (int childId in childIds) {
 					if (!nodeBudget.HasRemaining) {
-						children.Add(CreateTruncationNode());
+						output.Add(CreateFlatTruncationNode(nodeId));
 						break;
 					}
 
-					children.Add(BuildNode(
+					EmitFlatSubtree(
 						childId,
+						nodeId,
 						nodesById,
 						childrenByParentId,
 						visited,
 						nodeBudget,
-						depth + 1));
+						depth + 1,
+						output);
 				}
 			}
-
-			return new ComponentNode {
-				Id = id.ToString(),
-				Name = name,
-				Children = children,
-				Parameters = parameters,
-				Injections = injections,
-				Locator = locator,
-			};
 		} catch (Exception) {
-			return new ComponentNode {
+			output.Add(new ComponentNode {
 				Id = id.ToString(),
 				Name = "(error)",
-				Children = [],
-			};
+				ParentId = parentId,
+			});
 		}
 	}
 
+
 	/// <summary>
-	/// Creates a synthetic root node to serve as the top-level parent in the component tree.
-	/// This is used as a container for the discovered component nodes.
+	/// Constructs a <see cref="ComponentNode"/> payload for a given <see cref="ComponentStateInfo"/>.
 	/// </summary>
-	/// <param name="children">A list of child <see cref="ComponentNode"/> instances to attach under the root.</param>
+	/// <param name="info">The component state information.</param>
+	/// <param name="parentId">The string identifier of the parent component node, or <c>null</c> if this is a root node.</param>
+	/// <param name="nodesById">A dictionary of all component state infos indexed by their integer identifier.</param>
 	/// <returns>
-	/// A <see cref="ComponentNode"/> representing the synthetic root with the specified children.
+	/// A <see cref="ComponentNode"/> representing the current component, containing extracted parameters,
+	/// injected services, and a best-effort CSS locator.
 	/// </returns>
-	private static ComponentNode CreateSyntheticRoot(IReadOnlyList<ComponentNode> children) =>
+	private ComponentNode BuildNodePayload(
+		ComponentStateInfo info,
+		string? parentId,
+		IReadOnlyDictionary<int, ComponentStateInfo> nodesById) =>
+		new() {
+			Id = info.Id.ToString(),
+			Name = GetComponentName(info.Component),
+			ParentId = parentId,
+			Parameters = ExtractParameters(info.Component),
+			Injections = ExtractInjections(info.Component),
+			Locator = BuildLocator(info, nodesById),
+		};
+
+	/// <summary>
+	/// Creates a synthetic root <see cref="ComponentNode"/> representing the root of the component tree.
+	/// </summary>
+	/// <returns>
+	/// A <see cref="ComponentNode"/> instance with a synthetic root identifier and the name "Root".
+	/// </returns>
+	private static ComponentNode CreateSyntheticRootNode() =>
 		new() {
 			Id = _syntheticRootId,
 			Name = "Root",
-			Children = children.ToList(),
 		};
 
-	/// <summary>
-	/// Creates a truncation node used to indicate that the component tree has been truncated due to budget or depth limits.
-	/// </summary>
-	/// <remarks>
-	/// This node is added as a child when the node processing budget is exceeded, signaling to the consumer that not all components were included.
-	/// </remarks>
-	/// <returns>
-	/// A <see cref="ComponentNode"/> representing a truncation marker in the rendered component tree.
-	/// </returns>
-	private static ComponentNode CreateTruncationNode() =>
+	private static ComponentNode CreateFlatTruncationNode(string? parentId) =>
 		new() {
 			Id = _truncatedNodeId,
 			Name = "(...truncated)",
-			Children = [],
+			ParentId = parentId,
 		};
 
 	/// <summary>
-	/// Retrieves the type name of the specified component instance for display in the component tree.
+	/// Gets the simple type name of a component instance, or "(unknown)" if the component is null.
 	/// </summary>
-	/// <param name="component">The component instance whose type name is to be retrieved.</param>
+	/// <param name="component">The component instance whose type name to retrieve.</param>
 	/// <returns>
-	/// The type name of the component if the instance is non-null; otherwise, <c>(unknown)</c>.
+	/// The simple (unqualified) type name of the component, or "(unknown)" if <paramref name="component"/> is <c>null</c>.
 	/// </returns>
 	private static string GetComponentName(object? component) =>
 		component?.GetType().Name ?? "(unknown)";
@@ -206,15 +232,18 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 		component is DevToolsInitializer;
 
 	/// <summary>
-	/// Builds a CSS locator string for a given component using its render-tree frames and optionally scopes it under an ancestor id.
+	/// Builds a CSS locator string for a given component by analyzing its render frames and ancestor scope.
 	/// </summary>
-	/// <param name="info">The <see cref="ComponentStateInfo"/> of the component for which to build the locator.</param>
-	/// <param name="nodesById">A dictionary mapping component ids to their corresponding <see cref="ComponentStateInfo"/> nodes.</param>
+	/// <param name="info">The <see cref="ComponentStateInfo"/> of the component for which to build a locator.</param>
+	/// <param name="nodesById">
+	/// A read-only dictionary mapping component IDs to their corresponding <see cref="ComponentStateInfo"/>,
+	/// used to look up ancestor information for scope determination.
+	/// </param>
 	/// <returns>
-	/// A CSS selector string for the first element in the component, optionally scoped by an ancestor id,
-	/// or <see langword="null"/> if render frames are unavailable or empty.
+	/// A CSS locator string that uniquely identifies the component's DOM root, or <c>null</c>
+	/// if a locator cannot be constructed (e.g., if render frames are not available).
 	/// </returns>
-	private string? BuildLocator(
+	private static string? BuildLocator(
 		ComponentStateInfo info,
 		IReadOnlyDictionary<int, ComponentStateInfo> nodesById)
 	{
@@ -227,16 +256,14 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	}
 
 	/// <summary>
-	/// Traverses ancestor components to locate the nearest component with an element id, for use as a CSS scoping ancestor.
+	/// Traverses the ancestor chain of a component to find the nearest ancestor with a DOM element <c>id</c> (scope identifier).
 	/// </summary>
-	/// <param name="parentId">
-	/// The id of the immediate parent component node, or <see langword="null"/> to indicate there is no parent.
-	/// </param>
+	/// <param name="parentId">The ID of the parent component whose ancestors to search.</param>
 	/// <param name="nodesById">
-	/// A dictionary mapping component node ids to their <see cref="ComponentStateInfo"/> objects.
+	/// A read-only dictionary mapping component IDs to their corresponding <see cref="ComponentStateInfo"/>.
 	/// </param>
 	/// <returns>
-	/// The <c>id</c> attribute of the first ancestor with a top-level render-tree element having an id, or <see langword="null"/> if none found.
+	/// A <see cref="string"/> containing the ancestor element's <c>id</c> attribute if found; otherwise, <c>null</c>.
 	/// </returns>
 	private static string? FindAncestorScopeId(
 		int? parentId,
@@ -244,11 +271,13 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	{
 		int? currentParentId = parentId;
 		while (currentParentId is int parentComponentId &&
-		       nodesById.TryGetValue(parentComponentId, out ComponentStateInfo? parentInfo)) {
+		       nodesById.TryGetValue(parentComponentId, out ComponentStateInfo? parentInfo))
+		{
 			RenderTreeFrame[]? parentFrames =
 				BlazorInternalsAccessor.TryGetComponentRenderFrames(parentInfo.ComponentState);
 			if (parentFrames is not null &&
-			    ComponentCssLocatorBuilder.TryGetElementId(parentFrames.AsSpan()) is string elementId) {
+			    ComponentCssLocatorBuilder.TryGetElementId(parentFrames.AsSpan()) is string elementId)
+			{
 				return elementId;
 			}
 
@@ -259,13 +288,15 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	}
 
 	/// <summary>
-	/// Extracts all parameter properties (annotated with <see cref="ParameterAttribute"/>
-	/// or <see cref="CascadingParameterAttribute"/>) from the given component instance and serializes their values.
+	/// Extracts the public parameters (including <see cref="ParameterAttribute"/> and <see cref="CascadingParameterAttribute"/>)
+	/// from the specified component instance, serializing their current values.
 	/// </summary>
-	/// <param name="component">The Blazor component instance from which to extract parameters. May be <c>null</c>.</param>
+	/// <param name="component">
+	/// The component instance from which to extract parameters. If <c>null</c>, an empty list is returned.
+	/// </param>
 	/// <returns>
-	/// A list of <see cref="ComponentParameter"/> objects representing the parameters and their
-	/// serialized values; returns an empty list if <paramref name="component"/> is <c>null</c> or has no parameters.
+	/// A list of <see cref="ComponentParameter"/> objects representing the parameters and their serialized values.
+	/// If a parameter value cannot be read or serialized, the <c>Value</c> will be set to a JSON string "<error>".
 	/// </returns>
 	private List<ComponentParameter> ExtractParameters(object? component)
 	{
@@ -302,15 +333,15 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	}
 
 	/// <summary>
-	/// Extracts all injected service properties (annotated with <see cref="InjectAttribute"/>) from the specified component instance.
+	/// Extracts information about the injected services for the specified component instance.
 	/// </summary>
 	/// <param name="component">
-	/// The Blazor component instance from which to extract injected services. May be <c>null</c>.
+	/// The component instance from which to extract injected services. If <c>null</c>, an empty list is returned.
 	/// </param>
 	/// <returns>
-	/// A read-only list of <see cref="ComponentInjection"/> objects representing each injected property,
-	/// with its name, service type, and the actual implementation type (if available).
-	/// Returns an empty list if <paramref name="component"/> is <c>null</c> or has no injections.
+	/// A list of <see cref="ComponentInjection"/> objects representing the injected services in the component.
+	/// Each item includes the property name, the declared service type, and the resolved implementation type (class name at runtime).
+	/// If the implementation type cannot be determined due to an error, <c>ImplementationType</c> will be <c>null</c>.
 	/// </returns>
 	private static IReadOnlyList<ComponentInjection> ExtractInjections(object? component)
 	{
@@ -347,14 +378,14 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	}
 
 	/// <summary>
-	/// Discovers and collects all parameter and injection properties annotated with <see cref="ParameterAttribute"/>,
-	/// <see cref="CascadingParameterAttribute"/>, or <see cref="InjectAttribute"/> for a given component type.
+	/// Discovers and categorizes the properties of a given component type that are annotated
+	/// with <see cref="ParameterAttribute"/>, <see cref="CascadingParameterAttribute"/>, or <see cref="InjectAttribute"/>.
 	/// </summary>
 	/// <param name="componentType">
-	/// The type of the Blazor component to inspect for annotated properties.
+	/// The <see cref="Type"/> of the component to inspect for annotated properties.
 	/// </param>
 	/// <returns>
-	/// An <see cref="AnnotatedProperties"/> object containing arrays of properties annotated as parameters or injections.
+	/// An <see cref="AnnotatedProperties"/> object containing arrays of properties categorized as parameters or injections.
 	/// </returns>
 	private static AnnotatedProperties DiscoverAnnotatedProperties(Type componentType)
 	{
@@ -386,12 +417,12 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 	}
 
 	/// <summary>
-	/// Represents a snapshot of a Blazor internal <c>ComponentState</c> instance, including its unique ID, parent state, and associated component instance.
+	/// Represents the state information of a component within the component tree.
 	/// </summary>
-	/// <param name="Id">The unique component identifier within the renderer.</param>
-	/// <param name="ParentId">The identifier of the parent component state, or <see langword="null"/> if this is a root component.</param>
-	/// <param name="ComponentState">A reflected instance of Blazor's internal <c>ComponentState</c> for this component.</param>
-	/// <param name="Component">The associated <see cref="ComponentBase"/> instance, or <see langword="null"/> if unavailable.</param>
+	/// <param name="Id">The unique identifier of the component node.</param>
+	/// <param name="ParentId">The unique identifier of the parent component node, or <c>null</c> if this is a root node.</param>
+	/// <param name="ComponentState">The runtime state object of the component, typically containing parameters and internal data.</param>
+	/// <param name="Component">The instance of the component (if available); may be <c>null</c> if inspection is limited.</param>
 	private sealed record ComponentStateInfo(
 		int Id,
 		int? ParentId,
@@ -399,36 +430,50 @@ internal sealed class ReflectionComponentTreeInspector(ParameterValueSerializer 
 		object? Component);
 
 	/// <summary>
-	/// Holds arrays of properties from a component type that are annotated as parameters or injections.
+	/// Represents categorized properties of a Blazor component discovered by reflection.
 	/// </summary>
 	/// <param name="Parameters">
-	/// The set of properties annotated with <see cref="ParameterAttribute"/> or <see cref="CascadingParameterAttribute"/>.
+	/// An array of <see cref="PropertyInfo"/> objects representing properties annotated as parameters,
+	/// i.e., those marked with <see cref="ParameterAttribute"/> or <see cref="CascadingParameterAttribute"/>.
 	/// </param>
 	/// <param name="Injections">
-	/// The set of properties annotated with <see cref="InjectAttribute"/>.
+	/// An array of <see cref="PropertyInfo"/> objects representing properties annotated with <see cref="InjectAttribute"/>.
 	/// </param>
 	private sealed record AnnotatedProperties(
 		PropertyInfo[] Parameters,
 		PropertyInfo[] Injections);
 
 	/// <summary>
-	/// Represents a budget for limiting the number of nodes processed in a traversal or capture operation.
+	/// Represents a simple budget for limiting the number of component nodes that may be processed.
+	/// Used to enforce an upper bound during component tree reflection to prevent
+	/// performance issues or excessive depth traversal.
 	/// </summary>
-	/// <param name="maxNodes">The maximum number of nodes that can be processed within this budget.</param>
-	private sealed class NodeBudget(int maxNodes)
+	/// <remarks>
+	/// The budget is decremented each time a node is consumed. When depleted, no further nodes should be traversed.
+	/// </remarks>
+	private sealed class NodeBudget
 	{
-		private int _remaining = maxNodes;
+		private int _remaining;
 
 		/// <summary>
-		/// Gets a value indicating whether there is remaining budget to process additional nodes.
+		/// Initializes a new instance of the <see cref="NodeBudget"/> class with the specified maximum number of nodes.
+		/// </summary>
+		/// <param name="maxNodes">The maximum number of nodes that may be processed.</param>
+		public NodeBudget(int maxNodes)
+		{
+			_remaining = maxNodes;
+		}
+
+		/// <summary>
+		/// Gets a value indicating whether there is remaining budget to process at least one more node.
 		/// </summary>
 		public bool HasRemaining => _remaining > 0;
 
 		/// <summary>
-		/// Attempts to consume one unit of node budget.
+		/// Attempts to consume one unit from the node budget.
 		/// </summary>
 		/// <returns>
-		/// <see langword="true"/> if there was remaining budget and it was decremented; otherwise, <see langword="false"/>.
+		/// <c>true</c> if a unit was successfully consumed and there is remaining budget; otherwise, <c>false</c>.
 		/// </returns>
 		public bool TryConsume()
 		{

@@ -1,13 +1,21 @@
 /**
  * Dispatches a Blazor Dev Tools protocol envelope to the page window so the
  * extension content script can forward it to the DevTools panel.
- * @param {object} message - DevTools envelope (protocol, version, type, payload).
+ * @param {string|object} message - DevTools envelope JSON string or parsed object.
  */
 export function dispatch(message) {
-  window.postMessage(message, window.location.origin);
+  let envelope;
+  try {
+    envelope = typeof message === "string" ? JSON.parse(message) : message;
+  } catch {
+    console.debug("[BlazorDevTools] dispatch: invalid JSON");
+    return;
+  }
+
+  window.postMessage(envelope, window.location.origin);
 }
 
-  /** @type {(() => void) | null} */
+/** @type {(() => void) | null} */
 let refreshCallback = null;
 
 /**

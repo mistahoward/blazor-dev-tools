@@ -1,0 +1,16 @@
+<div class="deep-tree-node" data-depth="@Depth">
+    Level @Depth
+</div>
+
+@if (Depth < MaxDepth)
+{
+    <DeepTreeNode Depth="@(Depth + 1)" MaxDepth="MaxDepth" />
+}
+
+@code {
+    [Parameter]
+    public int Depth { get; set; }
+
+    [Parameter]
+    public int MaxDepth { get; set; }
+}

@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <PackageId>Blazor.Browser.DevTools</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <Authors>Alex Howard</Authors>
     <Company>Alex Howard</Company>
     <Title>Blazor Dev Tools</Title>

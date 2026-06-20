@@ -9,5 +9,5 @@ public static class DevToolsProtocol
     public const string Name = "blazor-devtools";
 
     /// <summary>Current protocol version.</summary>
-    public const int Version = 1;
+    public const int Version = 2;
 }

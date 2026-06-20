@@ -1,13 +1,13 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using BlazorDevTools.Client.Inspection;
 using BlazorDevTools.Client.Options;
 using BlazorDevTools.Client.Protocol;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
@@ -21,29 +21,10 @@ internal sealed class BlazorDevToolsService(
     IJSRuntime jsRuntime,
     NavigationManager navigationManager,
     IComponentTreeInspector treeInspector,
-    IOptions<BlazorDevToolsOptions> options) : IBlazorDevToolsService, IAsyncDisposable
+    IOptions<BlazorDevToolsOptions> options,
+    ILogger<BlazorDevToolsService> logger) : IBlazorDevToolsService, IAsyncDisposable
 {
     private const int _debounceMilliseconds = 250;
-
-    /// <summary>
-    /// Preconfigured <see cref="JsonSerializerOptions"/> for serializing <see cref="DevToolsEnvelope{TPayload}"/> messages.
-    /// Uses camelCase property naming and ignores default values when writing JSON.
-    /// </summary>
-    private static readonly JsonSerializerOptions _envelopeSerializerOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
-    /// <summary>
-    /// Preconfigured <see cref="JsonSerializerOptions"/> for hashing protocol payloads deterministically.
-    /// Uses camelCase property naming and ignores default values when serializing the payload for computing a hash.
-    /// </summary>
-    private static readonly JsonSerializerOptions _payloadHashOptions = new()
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
 
     private readonly Lazy<Task<IJSObjectReference>> _moduleTask = new(() => jsRuntime.InvokeAsync<IJSObjectReference>(
         "import", "./_content/BlazorDevTools.Client/blazorDevToolsInterop.js").AsTask());
@@ -78,8 +59,8 @@ internal sealed class BlazorDevToolsService(
         {
             IJSObjectReference module = await _moduleTask.Value;
             await RegisterRefreshCallbackAsync(module);
-            await CaptureAndDispatchAsync(CancellationToken.None);
             IsInitialized = true;
+            await CaptureAndDispatchAsync(CancellationToken.None);
         }
         catch (JSException)
         {
@@ -140,13 +121,6 @@ internal sealed class BlazorDevToolsService(
         _captureGate.Dispose();
     }
 
-    /// <summary>
-    /// Registers a .NET object reference with the provided JavaScript module to enable
-    /// the DevTools panel to invoke refresh requests from JavaScript.
-    /// This is called once to establish the refresh callback between .NET and JS.
-    /// </summary>
-    /// <param name="module">The JavaScript module in which to register the refresh callback.</param>
-    /// <returns>A task that completes when the registration has finished.</returns>
     private async Task RegisterRefreshCallbackAsync(IJSObjectReference module)
     {
         if (_dotNetRef is not null)
@@ -157,8 +131,8 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Ensures that a subscription to the <see cref="NavigationManager.LocationChanged"/> event is active.
-    /// Subscribes to location changes if not already subscribed, so that navigation events trigger refreshes.
+    /// Ensures that the NavigationManager.LocationChanged event is subscribed exactly once,
+    /// so that component tree updates are triggered on navigation events.
     /// </summary>
     private void EnsureLocationSubscription()
     {
@@ -170,18 +144,21 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Handles the <see cref="NavigationManager.LocationChanged"/> event by triggering a refresh request.
+    /// Handles navigation location changes by requesting a refresh of the component tree snapshot.
     /// </summary>
-    /// <param name="sender">The event source.</param>
-    /// <param name="e">The <see cref="LocationChangedEventArgs"/> containing event data.</param>
+    /// <param name="sender">The event source, typically the <see cref="NavigationManager"/>.</param>
+    /// <param name="e">The <see cref="LocationChangedEventArgs"/> associated with the navigation event.</param>
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => RequestRefresh();
 
     /// <summary>
-    /// Schedules a debounced component tree capture operation.
-    /// Cancels any pending capture (if already scheduled), resets the debounce timer,
-    /// and requests a new capture after the debounce interval expires.
-    /// Thread-safe guard to ensure only one capture triggers after the last schedule call.
+    /// Schedules a debounced capture of the component tree.
+    /// Cancels any pending capture operation and starts a new one using a delay,
+    /// ensuring rapid calls are coalesced into a single operation.
     /// </summary>
+    /// <remarks>
+    /// This method acquires a lock on <see cref="_debounceLock"/> to coordinate concurrent calls.
+    /// It is no-op if the service has been disposed.
+    /// </remarks>
     private void ScheduleDebouncedCapture()
     {
         lock (_debounceLock)
@@ -198,11 +175,11 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Awaits a debounce interval before capturing and dispatching the component tree,
-    /// unless the operation is cancelled. Intended to be triggered by UI or navigation activity.
+    /// Waits for the debounce interval and then triggers a capture and dispatch of the component tree,
+    /// unless the operation is cancelled (e.g., by a new debounce call or service disposal).
     /// </summary>
-    /// <param name="token">A cancellation token for preempting the pending capture.</param>
-    /// <returns>A task that completes when the debounce delay elapses and the capture completes, or is cancelled.</returns>
+    /// <param name="token">A <see cref="CancellationToken"/> that cancels the debounce wait and capture dispatch.</param>
+    /// <returns>A task that completes when the capture and dispatch has run or the operation is cancelled.</returns>
     private async Task DebouncedCaptureAsync(CancellationToken token)
     {
         try
@@ -217,17 +194,29 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Captures the current Blazor component tree, serializes it, and dispatches it to the JavaScript DevTools extension.
-    /// Ensures thread-safety, avoids redundant dispatches using change hashing, and debounces repeated refresh requests.
+    /// Captures the current component tree and dispatches it to the JavaScript side if it has changed since the last dispatch.
     /// </summary>
-    /// <param name="token">A cancellation token to abort the ongoing capture or dispatch operation.</param>
-    /// <returns>A task that completes when the capture and dispatch process finishes or is cancelled.</returns>
+    /// <param name="token">
+    /// A <see cref="CancellationToken"/> that can be used to cancel the operation.
+    /// </param>
     /// <remarks>
-    /// <list type="bullet">
-    /// <item>Only dispatches an updated component tree if a payload hash differs from the previous dispatch.</item>
-    /// <item>Handles multiple concurrent trigger attempts using a semaphore.</item>
-    /// <item>Catches and swallows interop and circuit disconnect exceptions during the dispatch process.</item>
+    /// <para>
+    /// Ensures only one capture operation runs at a time by acquiring the <see cref="_captureGate"/> semaphore.
+    /// If another capture is already running, sets <see cref="_pendingRefresh"/> to ensure a follow-up occurs after the current operation.
+    /// </para>
+    /// <para>
+    /// For each iteration, the method:
+    /// <list type="number">
+    /// <item>Clears <see cref="_pendingRefresh"/> and verifies the service is not disposed and the token is not canceled.</item>
+    /// <item>Invokes <see cref="CaptureTreeOnDispatcherAsync"/> to obtain the component tree payload via the appropriate renderer dispatcher.</item>
+    /// <item>Ignores the update if the payload is <c>null</c>, or nothing has changed since the last dispatch (compared by hash).</item>
+    /// <item>Serializes a <see cref="DevToolsEnvelope{ComponentTreeUpdatePayload}"/> and dispatches it to the JS interop module.</item>
     /// </list>
+    /// If <see cref="_pendingRefresh"/> is set during capture, the operation loops to process the next pending update unless cancellation or disposal occurs.
+    /// </para>
+    /// <para>
+    /// JS interop or serialization exceptions are logged and do not throw. The semaphore is always released in <c>finally</c>.
+    /// </para>
     /// </remarks>
     private async Task CaptureAndDispatchAsync(CancellationToken token)
     {
@@ -267,9 +256,9 @@ internal sealed class BlazorDevToolsService(
                     Payload = payload,
                 };
 
-                JsonElement serializedEnvelope = JsonSerializer.SerializeToElement(envelope, _envelopeSerializerOptions);
+                string json = JsonSerializer.Serialize(envelope, DevToolsJsonSerializerOptions.Envelope);
                 IJSObjectReference module = await _moduleTask.Value;
-                await module.InvokeVoidAsync("dispatch", token, serializedEnvelope);
+                await module.InvokeVoidAsync("dispatch", token, json);
             }
             while (_pendingRefresh && !_disposed && !token.IsCancellationRequested);
         }
@@ -281,6 +270,14 @@ internal sealed class BlazorDevToolsService(
         {
             // Circuit disconnected.
         }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Blazor Dev Tools: failed to serialize component tree snapshot.");
+        }
+        catch (NotSupportedException ex)
+        {
+            logger.LogWarning(ex, "Blazor Dev Tools: failed to serialize component tree snapshot.");
+        }
         finally
         {
             _captureGate.Release();
@@ -288,13 +285,13 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Captures a snapshot of the component tree for the specified host component,
-    /// ensuring the operation runs on the renderer's dispatcher thread if available.
+    /// Captures a snapshot of the Blazor component tree for the specified <paramref name="host"/> component,
+    /// ensuring execution occurs on the correct renderer dispatcher if available.
     /// </summary>
-    /// <param name="host">The root component whose tree is to be captured.</param>
+    /// <param name="host">The root <see cref="ComponentBase"/> from which to start capturing the component tree.</param>
     /// <returns>
-    /// A <see cref="Task{TResult}"/> with a <see cref="ComponentTreeUpdatePayload"/> containing the tree snapshot,
-    /// or <c>null</c> if capture fails or an exception occurs.
+    /// A <see cref="Task{TResult}"/> producing a <see cref="ComponentTreeUpdatePayload"/> representing the captured tree,
+    /// or <c>null</c> if the operation fails or an exception occurs.
     /// </returns>
     private async Task<ComponentTreeUpdatePayload?> CaptureTreeOnDispatcherAsync(ComponentBase host)
     {
@@ -319,15 +316,16 @@ internal sealed class BlazorDevToolsService(
     }
 
     /// <summary>
-    /// Computes a SHA-256 hash of the serialized <see cref="ComponentTreeUpdatePayload"/>.
+    /// Computes a deterministic SHA-256 hash of the serialized <see cref="ComponentTreeUpdatePayload"/>.
     /// </summary>
-    /// <param name="payload">The component tree payload to hash.</param>
+    /// <param name="payload">The <see cref="ComponentTreeUpdatePayload"/> to hash.</param>
     /// <returns>
-    /// A hexadecimal string representation of the SHA-256 hash for the given payload.
+    /// A hexadecimal string representation of the SHA-256 hash of the payload,
+    /// encoded as JSON using <see cref="DevToolsJsonSerializerOptions.PayloadHash"/>.
     /// </returns>
     private static string ComputePayloadHash(ComponentTreeUpdatePayload payload)
     {
-        string json = JsonSerializer.Serialize(payload, _payloadHashOptions);
+        string json = JsonSerializer.Serialize(payload, DevToolsJsonSerializerOptions.PayloadHash);
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
         return Convert.ToHexString(hashBytes);
     }

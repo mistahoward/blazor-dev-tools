@@ -22,3 +22,9 @@ globs: **/*.cs, **/*.ts, **/*.js, **/*.razor
 * When generating new services or handlers, always write the interface first.
 * Include XML documentation for all public C# APIs and JSDoc for complex JavaScript functions.
 * Prioritize defensive programming when using C# Reflection to inspect components, as the component tree state can mutate rapidly.
+
+# XML Documentation (C#)
+* **Preserve existing `///` comments.** When editing C# files, do not delete XML documentation on types, members, or parameters unless the documented symbol itself is removed.
+* **Update, don't strip.** If a signature, behavior, return value, or exception surface changes, revise the existing XML docs to match — do not remove them and leave the member undocumented.
+* **Add for new public surface.** New public types and members still require XML docs per project standards.
+* **Refactors are not doc resets.** Renames, extractions, and behavior-preserving rewrites should carry forward (and adjust) existing documentation rather than rewriting the implementation with bare members.

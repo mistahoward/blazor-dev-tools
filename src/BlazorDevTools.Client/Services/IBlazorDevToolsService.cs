@@ -13,13 +13,13 @@ public interface IBlazorDevToolsService
     bool IsEnabled { get; }
 
     /// <summary>
-    /// Gets whether the Dev Tools JS bridge has been successfully initialized.
+    /// Gets whether the Dev Tools JS bridge has been successfully registered.
     /// </summary>
     bool IsInitialized { get; }
 
     /// <summary>
-    /// Initializes the Dev Tools bridge using <paramref name="host"/> to reach the renderer,
-    /// subscribes to navigation changes, and dispatches an initial component tree snapshot.
+    /// Registers the Dev Tools JS bridge using <paramref name="host"/> to reach the renderer,
+    /// subscribes to navigation changes, and attempts an initial component tree snapshot dispatch.
     /// Safe to call multiple times; the bridge initializes at most once per scope when JS interop is available.
     /// </summary>
     /// <param name="host">A live component used to reach the shared renderer.</param>

@@ -1,0 +1,17 @@
+@page "/deep-tree"
+
+<PageTitle>Deep Tree</PageTitle>
+
+<h1>Deep Tree</h1>
+
+<p>
+    Inspector limits: depth 64, nodes 500.
+    Target chain depth: @TargetDepth (exceeds legacy interop ~16-level ceiling).
+</p>
+
+<DeepTreeNode Depth="1" MaxDepth="@TargetDepth" />
+
+@code {
+    /// <summary>Exceeds <c>ReflectionComponentTreeInspector._maxDepth</c> (64) including layout overhead.</summary>
+    private const int TargetDepth = 70;
+}

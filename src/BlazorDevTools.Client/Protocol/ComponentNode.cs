@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace BlazorDevTools.Client.Protocol;
 
 /// <summary>
-/// A node in the nested Blazor component tree.
+/// A node in the flat Blazor component tree wire format (protocol v2).
 /// </summary>
 public sealed record ComponentNode
 {
@@ -15,9 +15,10 @@ public sealed record ComponentNode
     [JsonPropertyName("name")]
     public required string Name { get; init; }
 
-    /// <summary>Child components rendered by this component.</summary>
-    [JsonPropertyName("children")]
-    public IReadOnlyList<ComponentNode> Children { get; init; } = [];
+    /// <summary>Parent component id, or omitted when this node is a root.</summary>
+    [JsonPropertyName("parentId")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ParentId { get; init; }
 
     /// <summary>
     /// Component parameters and cascading values. Omitted on the wire when empty.

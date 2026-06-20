@@ -13,6 +13,7 @@ import {
 } from "./panel/pickerControl.js";
 import { applyPageHighlight } from "./panel/pageHighlight.js";
 import { renderTree } from "./panel/treeView.js";
+import { nestFlatNodes } from "./panel/nestFlatNodes.js";
 import { isReservedNodeId, SYNTHETIC_ROOT_ID, TRUNCATED_ID } from "./panel/constants.js";
 import {
   isPickerClickRelayMessage,
@@ -527,7 +528,7 @@ const applyTreeUpdate = (root: ComponentNode): void => {
  */
 const handlePanelMessage = (message: unknown): void => {
   if (isComponentTreeUpdateMessage(message)) {
-    applyTreeUpdate(message.payload.root);
+    applyTreeUpdate(nestFlatNodes(message.payload.nodes));
     return;
   }
 

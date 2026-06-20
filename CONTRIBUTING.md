@@ -57,7 +57,8 @@ This repository follows the architecture and code-generation guidelines in
 
 - Open an issue to discuss larger changes before submitting a PR.
 - Keep pull requests focused and small.
-- Ensure `dotnet build BlazorDevTools.sln` and `npm run build` (in `src/Extension`) succeed before submitting.
+- Ensure `dotnet test BlazorDevTools.sln`, `dotnet build BlazorDevTools.sln`, and `npm run build` (in `src/Extension`) succeed before submitting.
+- Use the **Deep Tree** sample page (`/deep-tree`) to verify truncation and depth behavior in the Blazor DevTools panel.
 - Update [CHANGELOG.md](CHANGELOG.md) under an `Unreleased` section when your change is user-facing.
 
 ## License
