@@ -1,7 +1,7 @@
 {
   "name": "blazor-dev-tools-client",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Blazor Dev Tools client library JS interop",
   "scripts": {
     "build": "esbuild scripts/blazorDevToolsInterop.ts --bundle --format=esm --platform=browser --target=es2020 --outfile=wwwroot/blazorDevToolsInterop.js",

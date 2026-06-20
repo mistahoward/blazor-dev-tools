@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Blazor Dev Tools",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Inspect Blazor components, parameters, and dependency injection from Chrome DevTools.",
   "devtools_page": "devtools.html",
   "permissions": ["storage"],

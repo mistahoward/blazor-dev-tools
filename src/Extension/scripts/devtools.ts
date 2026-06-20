@@ -22,7 +22,7 @@ const registerDevToolsPanel = (): void => {
   chrome.devtools.panels.create(
     "Blazor",
     "icons/icon48.png",
-    "panel.html?v=4",
+    "panel.html?v=5",
     onPanelCreated,
   );
 };

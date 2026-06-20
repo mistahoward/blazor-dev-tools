@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-20
+
+Aligned **NuGet** and **Chrome extension** release versions (both `1.1.2`). The library package has no functional changes since `1.1.1`; update the extension for the panel fix below.
+
+### Fixed
+
+- **Chrome extension — component tree labels**: deep nested component names no longer truncate with an ellipsis; the tree pane scrolls horizontally to show full names. Details table name/type columns likewise expand instead of being squeezed by fixed column widths.
+
 ## [1.1.1] - 2026-06-20
 
 ### Fixed
@@ -59,6 +67,7 @@ Initial production release of the **Blazor.Browser.DevTools** NuGet library and 
 - **Official Blazor branding icons** for the Chrome extension and NuGet package.
 - **Automated store-ready zip packaging** via `npm run package` in `src/Extension`.
 
+[1.1.2]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.2
 [1.1.1]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.1
 [1.1.0]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mistahoward/blazor-dev-tools/releases/tag/v1.0.0
