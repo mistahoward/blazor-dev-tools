@@ -2,6 +2,7 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S3XYOL5)
 [![NuGet](https://img.shields.io/nuget/v/Blazor.Browser.DevTools)](https://www.nuget.org/packages/Blazor.Browser.DevTools)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
 A [React DevTools](https://react.dev/learn/react-developer-tools)-like experience for [Blazor](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor) applications (Server and WebAssembly). Inspect your component tree, view parameters and cascading values, and understand what the dependency injection container resolved, all from a dedicated **Blazor** panel inside Chrome DevTools.
@@ -11,7 +12,7 @@ Blazor Dev Tools has two cooperating parts:
 | Part | Location | Role |
 |------|----------|------|
 | Blazor library (NuGet) | `Blazor.Browser.DevTools` | Hooks into the Blazor runtime, inspects components via reflection, and exposes inspection data over a JSON protocol |
-| Chrome Extension | `src/Extension` | DevTools panel, background relay, and content-script bridge that renders the inspection data |
+| Chrome Extension | [Chrome Web Store](https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm) · `src/Extension` | DevTools panel, background relay, and content-script bridge that renders the inspection data |
 
 ## Features
 
@@ -32,7 +33,7 @@ Install the NuGet package into your Blazor app:
 dotnet add package Blazor.Browser.DevTools
 ```
 
-Then install the **Blazor Dev Tools** Chrome extension (see [Installing the Chrome extension](#installing-the-chrome-extension)).
+Then install the **Blazor Dev Tools** [Chrome extension from the Chrome Web Store](https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm) (see [Installing the Chrome extension](#installing-the-chrome-extension) for load-unpacked development builds).
 
 ## Quick Start
 
@@ -66,14 +67,20 @@ Make sure the namespace is available (via `_Imports.razor` or an inline `@using`
 ### 3. Open the Panel
 
 1. Build and run your app.
-2. Install/load the Chrome extension (below).
+2. Install the [Chrome extension](https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm) (or load an unpacked build for local extension development).
 3. Open Chrome DevTools (F12) on your app and select the **Blazor** panel.
 
 You should see the live component tree. Selecting a component shows its parameters, cascading values, and injected services.
 
 ## Installing the Chrome extension
 
-The extension is built from TypeScript sources under `src/Extension`.
+### Chrome Web Store (recommended)
+
+Install **[Blazor Dev Tools](https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm)** from the Chrome Web Store. Chrome keeps the extension updated automatically.
+
+### Load unpacked (extension development)
+
+To run a local build from this repository (for example while contributing), build from TypeScript sources under `src/Extension`:
 
 ```bash
 cd src/Extension

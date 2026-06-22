@@ -86,6 +86,6 @@ After indexing (usually a few minutes), confirm on [nuget.org/packages/Blazor.Br
 After both artifacts are live, create the `v1.0.0` release (or update its notes) with links:
 
 - NuGet: https://www.nuget.org/packages/Blazor.Browser.DevTools
-- Chrome Web Store: _(add your listing URL once approved)_
+- Chrome Web Store: https://chromewebstore.google.com/detail/blazor-dev-tools/ogalckdbfelbijbmhnodkpdhehoniphm
 
 Release notes should mirror [CHANGELOG.md](CHANGELOG.md).
